@@ -916,6 +916,357 @@ html.dark {
 }
 
 /* ==========================================================================
+   IMAGE 4: MONEY SUMMARY GRID (MONEY LEFT & MONEY USED)
+   ========================================================================== */
+
+.money-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.money-summary-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--line);
+}
+
+.money-summary-card.left {
+  background: #f0fdf4;
+  border-color: rgba(31, 157, 103, 0.2);
+}
+
+.money-summary-card.used {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.app.dark .money-summary-card.left,
+.dark .money-summary-card.left {
+  background: #182c21;
+  border-color: #244633;
+}
+
+.app.dark .money-summary-card.used,
+.dark .money-summary-card.used {
+  background: #162438;
+  border-color: #203c5d;
+}
+
+.money-card-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.money-card-icon-wrap.left {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.money-card-icon-wrap.used {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.app.dark .money-card-icon-wrap.left,
+.dark .money-card-icon-wrap.left {
+  background: #234734;
+  color: #4ade80;
+}
+
+.app.dark .money-card-icon-wrap.used,
+.dark .money-card-icon-wrap.used {
+  background: #1e3a5f;
+  color: #60a5fa;
+}
+
+.money-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.money-card-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.money-card-value {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--ink);
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.money-card-subtext {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ==========================================================================
+   IMAGE 4: MONTHLY OVERVIEW CARD & CIRCULAR GAUGE
+   ========================================================================== */
+
+.monthly-overview-card {
+  padding: 24px 28px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.monthly-overview-header h3 {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 4px 0;
+}
+
+.monthly-overview-header p {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.monthly-overview-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.monthly-overview-stats {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+.monthly-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.monthly-stat-item.has-divider {
+  border-left: 1px solid var(--line);
+  padding-left: 48px;
+}
+
+.monthly-stat-item .stat-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.monthly-stat-item .stat-value {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
+
+.monthly-stat-item .stat-value.text-green {
+  color: #1f9d67;
+}
+
+.app.dark .monthly-stat-item .stat-value.text-green,
+.dark .monthly-stat-item .stat-value.text-green {
+  color: #29ad73;
+}
+
+.monthly-overview-gauge-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-box {
+  width: 104px;
+  height: 104px;
+  position: relative;
+  flex: 0 0 104px;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.gauge-label strong {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.gauge-label small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+/* ==========================================================================
+   IMAGE 4: 3 ACTION SHORTCUT CARDS
+   ========================================================================== */
+
+.overview-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.action-shortcut-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.action-shortcut-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.action-shortcut-card:hover .action-arrow {
+  transform: translateX(3px);
+}
+
+.action-shortcut-card.expense {
+  background: #f0fdf4;
+  border-color: rgba(31, 157, 103, 0.18);
+}
+
+.action-shortcut-card.income {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+.action-shortcut-card.details {
+  background: #f8fafc;
+  border-color: var(--line);
+}
+
+.app.dark .action-shortcut-card.expense,
+.dark .action-shortcut-card.expense {
+  background: #182c21;
+  border-color: #244633;
+}
+
+.app.dark .action-shortcut-card.income,
+.dark .action-shortcut-card.income {
+  background: #162438;
+  border-color: #203c5d;
+}
+
+.app.dark .action-shortcut-card.details,
+.dark .action-shortcut-card.details {
+  background: #1c2e25;
+  border-color: #2a4437;
+}
+
+.action-shortcut-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.action-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.action-icon-badge.expense {
+  background: #1f9d67;
+  color: #ffffff;
+}
+
+.action-icon-badge.income {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.action-icon-badge.details {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.app.dark .action-icon-badge.details,
+.dark .action-icon-badge.details {
+  background: #2a3e33;
+  color: #cbd5e1;
+}
+
+.action-shortcut-text strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.action-shortcut-text small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.action-arrow {
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.main-grid.single-card,
+.lower-grid.single-card {
+  grid-template-columns: 1fr;
+}
+
+/* ==========================================================================
    MAIN & LOWER GRIDS
    ========================================================================== */
 
@@ -2761,6 +3112,170 @@ textarea:focus {
   }
 }
 
+/* AI Coach Interactive Action Cards */
+.coach-budget-action-card,
+.coach-plan-action-card {
+  margin-top: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.budget-action-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.budget-action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.budget-action-category {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.budget-action-card-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.budget-action-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.budget-action-stat .stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.budget-action-stat .stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stat-value.text-danger {
+  color: #ef4444;
+}
+
+.stat-value.text-success {
+  color: var(--green);
+}
+
+.budget-action-card-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.plan-action-header {
+  margin-bottom: 10px;
+}
+
+.plan-action-header h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 2px;
+}
+
+.plan-action-header p {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.plan-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.plan-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.plan-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 100px;
+}
+
+.plan-item-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.plan-item-pct {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--soft);
+}
+
+.plan-item-amt {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.plan-action-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.apply-plan-btn {
+  font-size: 12px;
+  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.apply-plan-btn:disabled {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green-soft);
+  cursor: default;
+}
+
 .chat-composer-bar {
   display: flex;
   align-items: center;
@@ -3442,6 +3957,30 @@ textarea:focus {
   }
 
   .quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .money-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monthly-overview-body {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .monthly-overview-stats {
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .monthly-stat-item.has-divider {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .overview-action-grid {
     grid-template-columns: 1fr;
   }
 

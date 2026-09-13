@@ -8,6 +8,7 @@ interface AddTransactionModalProps {
   onClose: () => void
   onOpenScanner: () => void
   onSuccessToast: (msg: string) => void
+  initialType?: TransactionType
 }
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
@@ -15,17 +16,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   onClose,
   onOpenScanner,
   onSuccessToast,
+  initialType = 'expense',
 }) => {
   const { addTransaction, formatMoney } = useFinancial()
 
-  const [type, setType] = useState<TransactionType>('expense')
+  const [type, setType] = useState<TransactionType>(initialType)
   const [merchant, setMerchant] = useState('')
   const [amount, setAmount] = useState<number | ''>('')
-  const [category, setCategory] = useState<Category>('Food')
+  const [category, setCategory] = useState<Category>(initialType === 'income' ? 'Income' : 'Food')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI')
   const [date, setDate] = useState('2026-09-02')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
+
+  const [prevInitialType, setPrevInitialType] = useState(initialType)
+
+  if (initialType !== prevInitialType) {
+    setPrevInitialType(initialType)
+    setType(initialType)
+    setCategory(initialType === 'income' ? 'Income' : 'Food')
+  }
 
   if (!isOpen) return null
 

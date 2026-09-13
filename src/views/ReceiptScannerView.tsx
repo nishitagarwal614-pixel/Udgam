@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
+import { parseReceiptImage } from '../utils/receiptParser'
 import type { Category, PaymentMethod, ReceiptItem } from '../types'
 
 interface ReceiptPreset {
@@ -120,7 +121,7 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
 
   // Extracted fields
   const [merchant, setMerchant] = useState('')
-  const [amount, setAmount] = useState<number | ''>('')
+  const [amount, setAmount] = useState<string>('')
   const [date, setDate] = useState('2026-09-02')
   const [category, setCategory] = useState<Category>('Food')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI')
@@ -143,6 +144,52 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
     setItems([])
     setNotes('')
     setErrorMsg('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const processUploadedFile = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string
+      setPreviewImage(dataUrl)
+      setStep('scanning')
+      setScanProgress(10)
+      setScanStatusText('Enhancing image and detecting receipt borders...')
+
+      try {
+        const result = await parseReceiptImage(file, (progress, status) => {
+          setScanProgress(progress)
+          setScanStatusText(status)
+        })
+
+        const formattedAmount =
+          result.amount > 0
+            ? (result.amount % 1 !== 0 ? result.amount.toFixed(2) : String(result.amount))
+            : ''
+
+        setMerchant(result.merchant)
+        setAmount(formattedAmount)
+        setDate(result.date)
+        setCategory(result.category)
+        setPaymentMethod(result.paymentMethod)
+        setItems(result.items)
+        setNotes(result.notes)
+
+        setTimeout(() => {
+          setStep('review')
+        }, 400)
+      } catch (err) {
+        console.error('OCR processing error:', err)
+        setScanStatusText('Extraction complete. Please verify values.')
+        setMerchant('Store / Canteen')
+        setTimeout(() => {
+          setStep('review')
+        }, 400)
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   const startScanningSimulation = (presetData?: ReceiptPreset, customFilename?: string) => {
@@ -167,7 +214,7 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
       setScanStatusText('Parsing complete! Preparing review card...')
 
       setMerchant(selected.merchant)
-      setAmount(selected.amount)
+      setAmount(selected.amount ? String(selected.amount) : '')
       setDate(selected.date)
       setCategory(selected.category)
       setPaymentMethod(selected.paymentMethod)
@@ -185,14 +232,7 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setPreviewImage(event.target?.result as string)
-      const randomPreset = PRESET_RECEIPTS[Math.floor(Math.random() * PRESET_RECEIPTS.length)]
-      startScanningSimulation(randomPreset, file.name)
-    }
-    reader.readAsDataURL(file)
+    processUploadedFile(file)
   }
 
   const handlePresetSelect = (preset: ReceiptPreset) => {
@@ -206,8 +246,8 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
       setErrorMsg('Please enter a valid merchant name.')
       return
     }
-    const finalAmt = Number(amount)
-    if (!finalAmt || finalAmt <= 0) {
+    const finalAmt = parseFloat(amount)
+    if (isNaN(finalAmt) || finalAmt <= 0) {
       setErrorMsg('Please enter a valid amount greater than 0.')
       return
     }
@@ -252,12 +292,7 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
                 e.preventDefault()
                 const file = e.dataTransfer.files?.[0]
                 if (file) {
-                  const reader = new FileReader()
-                  reader.onload = (ev) => {
-                    setPreviewImage(ev.target?.result as string)
-                    startScanningSimulation(PRESET_RECEIPTS[0], file.name)
-                  }
-                  reader.readAsDataURL(file)
+                  processUploadedFile(file)
                 }
               }}
             >
@@ -421,12 +456,11 @@ export const ReceiptScannerView: React.FC<ReceiptScannerViewProps> = ({
                     <input
                       type="number"
                       required
-                      min="1"
-                      step="any"
+                      min="0.01"
+                      step="0.01"
                       value={amount}
-                      onChange={(e) =>
-                        setAmount(e.target.value ? Number(e.target.value) : '')
-                      }
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="e.g. 45.60"
                     />
                   </label>
 

@@ -37,10 +37,21 @@ function AppContent() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const [isScannerOpen, setIsScannerOpen] = useState(false)
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
+  const [addTxType, setAddTxType] = useState<'expense' | 'income'>('expense')
   const [isAffordModalOpen, setIsAffordModalOpen] = useState(false)
   const [isSafeModalOpen, setIsSafeModalOpen] = useState(false)
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+
+  const handleOpenAddExpense = () => {
+    setAddTxType('expense')
+    setIsAddExpenseOpen(true)
+  }
+
+  const handleOpenAddIncome = () => {
+    setAddTxType('income')
+    setIsAddExpenseOpen(true)
+  }
 
   // Toast notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -71,14 +82,15 @@ function AppContent() {
         <Topbar
           onToggleMobileMenu={() => setIsMobileNavOpen(!isMobileNavOpen)}
           onOpenScanner={() => setIsScannerOpen(true)}
-          onOpenAddExpense={() => setIsAddExpenseOpen(true)}
+          onOpenAddExpense={handleOpenAddExpense}
           onOpenAffordModal={() => setIsAffordModalOpen(true)}
         />
 
         <div className="content">
           {activeView === 'Overview' && (
             <OverviewView
-              onOpenAddExpense={() => setIsAddExpenseOpen(true)}
+              onOpenAddExpense={handleOpenAddExpense}
+              onOpenAddIncome={handleOpenAddIncome}
               onOpenScanner={() => setIsScannerOpen(true)}
               onOpenAffordModal={() => setIsAffordModalOpen(true)}
               onOpenSafeModal={() => setIsSafeModalOpen(true)}
@@ -154,6 +166,7 @@ function AppContent() {
 
       <AddTransactionModal
         isOpen={isAddExpenseOpen}
+        initialType={addTxType}
         onClose={() => setIsAddExpenseOpen(false)}
         onOpenScanner={() => setIsScannerOpen(true)}
         onSuccessToast={addToast}

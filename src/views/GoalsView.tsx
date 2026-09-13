@@ -18,6 +18,7 @@ interface GoalsViewProps {
 export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
   const {
     goals,
+    profile,
     addGoal,
     updateGoal,
     deleteGoal,
@@ -235,7 +236,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
       {/* AI Pace Advisory */}
       <div className="card big-score" style={{ marginTop: '24px' }}>
-        <p className="eyebrow">AI STRATEGY FOR ARJUN</p>
+        <p className="eyebrow">
+          AI STRATEGY FOR {(profile.name.split(' ')[0] || 'NISHITA').toUpperCase()}
+        </p>
         <h2>Auto-Allocate ₹2,400 / month</h2>
         <p>
           At your current pace of saving ₹3,800/month from allowance, your New M3 MacBook Pro

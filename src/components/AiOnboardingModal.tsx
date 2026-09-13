@@ -32,7 +32,7 @@ export const AiOnboardingModal: React.FC<AiOnboardingModalProps> = ({
   const [synthesisStage, setSynthesisStage] = useState<string>('Analyzing your student cashflow...')
 
   // Step 1: Student info & allowance
-  const [name, setName] = useState('Arjun Sharma')
+  const [name, setName] = useState('Nishita')
   const [college, setCollege] = useState('IIT Delhi · Computer Science')
   const [monthlyAllowance, setMonthlyAllowance] = useState<number>(15000)
   const [livingSituation, setLivingSituation] = useState<'hostel' | 'flat' | 'home'>('hostel')
@@ -98,7 +98,7 @@ export const AiOnboardingModal: React.FC<AiOnboardingModalProps> = ({
 
   const handleSkip = () => {
     const defaultAnswers: OnboardingAnswers = {
-      name: 'Arjun Sharma',
+      name: 'Nishita',
       college: 'IIT Delhi · Computer Science',
       monthlyAllowance: 15000,
       livingSituation: 'hostel',
@@ -207,7 +207,7 @@ export const AiOnboardingModal: React.FC<AiOnboardingModalProps> = ({
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Arjun Sharma"
+                      placeholder="e.g. Nishita"
                     />
                   </label>
 

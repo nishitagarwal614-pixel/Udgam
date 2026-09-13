@@ -135,3 +135,19 @@ export interface SafeToSpendBreakdown {
   dailyBurnRate: number
   explanation: string
 }
+
+export interface BudgetActionData {
+  type: 'budget_created' | 'budget_updated' | 'budget_plan_recommended'
+  category?: Category
+  limit?: number
+  oldLimit?: number
+  spent?: number
+  remaining?: number
+  plan?: Array<{ category: Category; limit: number; percentage: number }>
+}
+
+export interface AiCoachResponse {
+  text: string
+  actionData?: BudgetActionData
+}
+

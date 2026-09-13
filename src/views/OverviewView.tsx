@@ -1,66 +1,44 @@
 import React, { useState } from 'react'
 import {
   Wallet,
-  ArrowDownRight,
-  ArrowUpRight,
-  Gauge,
-  Bot,
-  Sparkles,
+  CreditCard,
+  Plus,
+  ArrowRight,
+  BarChart3,
   TrendingUp,
-  Search,
   ChevronRight,
-  Target,
   Camera,
-  HelpCircle,
+  ArrowUpRight,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 import type { Category, Transaction } from '../types'
 
 interface OverviewViewProps {
   onOpenAddExpense: () => void
+  onOpenAddIncome?: () => void
   onOpenScanner: () => void
-  onOpenAffordModal: () => void
-  onOpenSafeModal: () => void
-  onOpenHealthModal: () => void
-  onSelectTransaction: (tx: Transaction) => void
+  onOpenAffordModal?: () => void
+  onOpenSafeModal?: () => void
+  onOpenHealthModal?: () => void
+  onSelectTransaction?: (tx: Transaction) => void
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenAddExpense,
+  onOpenAddIncome,
   onOpenScanner,
-  onOpenAffordModal,
-  onOpenSafeModal,
-  onOpenHealthModal,
-  onSelectTransaction,
 }) => {
   const {
-    currentBalance,
-    totalIncome,
     totalExpenses,
-    healthScore,
-    safeToSpend,
-    predictedMonthEnd,
     categoryTotals,
     topSpendingCategory,
     budgets,
-    goals,
-    transactions,
     profile,
-    setShowOnboarding,
     setActiveView,
     formatMoney,
   } = useFinancial()
 
-  const [query, setQuery] = useState('')
   const [spendPeriod, setSpendPeriod] = useState<'this-month' | 'last-month'>('this-month')
-
-  const filteredRecent = transactions
-    .filter((tx) =>
-      `${tx.merchant} ${tx.category} ${tx.notes || ''}`
-        .toLowerCase()
-        .includes(query.toLowerCase())
-    )
-    .slice(0, 5)
 
   // Calculate category percentages for the donut chart
   const categoriesList: { category: Category; label: string; color: string }[] = [
@@ -99,32 +77,35 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     }
   })
 
-  // Primary goal
-  const primaryGoal = goals[0] || {
-    title: 'New Laptop',
-    savedAmount: 18400,
-    targetAmount: 60000,
-  }
-  const goalPercent = Math.min(
-    100,
-    Math.round((primaryGoal.savedAmount / primaryGoal.targetAmount) * 100)
-  )
-
-  // Overall budget progress
+  // Overall budget progress & metrics for Overview
   const totalBudgetLimit = budgets.reduce((s, b) => s + b.limit, 0)
-  const totalBudgetProgress =
+  const effectiveBudget =
     totalBudgetLimit > 0
-      ? Math.min(100, Math.round((totalExpenses / totalBudgetLimit) * 100))
-      : 70
+      ? totalBudgetLimit
+      : profile.monthlyAllowance > 0
+      ? profile.monthlyAllowance
+      : 40000
+  const moneyUsed = totalExpenses
+  const moneyLeft = Math.max(0, effectiveBudget - moneyUsed)
+  const budgetPercent =
+    effectiveBudget > 0
+      ? Math.min(100, Math.round((moneyUsed / effectiveBudget) * 100))
+      : 0
+  const totalBudgetProgress = budgetPercent
+
+  // Circular gauge calculations
+  const gaugeRadius = 38
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius
+  const gaugeDashoffset =
+    gaugeCircumference * (1 - Math.min(100, Math.max(0, budgetPercent)) / 100)
 
   return (
     <div className="overview-view">
       {/* Top Header Section */}
       <section className="page-heading">
         <div>
-          <p className="eyebrow">WEDNESDAY, 02 SEPTEMBER 2026</p>
           <h1>
-            Good morning, {profile.name.split(' ')[0] || 'Arjun'} <span>*</span>
+            Good morning, {profile.name.split(' ')[0] || 'Nishita'} <span>*</span>
           </h1>
           <p className="muted">
             Here's your live student cashflow, completely connected and in control.
@@ -150,99 +131,152 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
       </section>
 
-      {/* Personalized AI Welcome Banner */}
-      <div className="card personalized-ai-banner" style={{ marginBottom: '24px' }}>
-        <div className="banner-left">
-          <div className="coach-orb">
-            <Bot size={22} />
+      {/* Image 4 Components: Top 2 Metric Cards */}
+      <section className="money-summary-grid">
+        {/* Money Left Card */}
+        <div className="money-summary-card left">
+          <div className="money-card-icon-wrap left">
+            <Wallet size={24} strokeWidth={2} />
           </div>
-          <div className="banner-text">
-            <div className="banner-tag">
-              <Sparkles size={13} />
-              <span>Tailored by Finwise AI Coach</span>
-            </div>
-            <h3>
-              Customized for {profile.name} · {formatMoney(profile.monthlyAllowance)}/month
-            </h3>
-            <p>
-              Your Safe-to-Spend limit today is <strong>{formatMoney(safeToSpend.safeDaily)}</strong>. Start logging your daily spending or scan receipts—Finwise automatically tracks your progress and keeps you on target.
+          <div className="money-card-content">
+            <span className="money-card-label">MONEY LEFT</span>
+            <strong className="money-card-value">{formatMoney(moneyLeft)}</strong>
+            <p className="money-card-subtext">
+              You can still spend {formatMoney(moneyLeft)} this month.
             </p>
           </div>
         </div>
 
-        <div className="banner-actions">
-          <button
-            type="button"
-            className="secondary-btn small"
-            onClick={() => setShowOnboarding(true)}
-            title="Update your answers and re-customize homepage"
-          >
-            <Sparkles size={13} /> Retake AI Setup
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Metric Grid */}
-      <section className="metric-grid">
-        <div
-          className="metric card clickable"
-          onClick={() => setActiveView('Transactions')}
-          title="Click to view all transactions"
-        >
-          <div className="metric-icon mint">
-            <Wallet size={18} />
+        {/* Money Used Card */}
+        <div className="money-summary-card used">
+          <div className="money-card-icon-wrap used">
+            <CreditCard size={24} strokeWidth={2} />
           </div>
-          <span>Total Balance</span>
-          <strong>{formatMoney(currentBalance)}</strong>
-          <small className="positive">
-            <TrendingUp size={12} /> Projected month-end: {formatMoney(predictedMonthEnd)}
-          </small>
-        </div>
-
-        <div
-          className="metric card clickable"
-          onClick={() => setActiveView('History')}
-          title="Click to view income history"
-        >
-          <div className="metric-icon blue">
-            <ArrowDownRight size={18} />
+          <div className="money-card-content">
+            <span className="money-card-label">MONEY USED</span>
+            <strong className="money-card-value">{formatMoney(moneyUsed)}</strong>
+            <p className="money-card-subtext">
+              {budgetPercent}% of your budget
+            </p>
           </div>
-          <span>Money In (Sep)</span>
-          <strong>{formatMoney(totalIncome)}</strong>
-          <small>Pocket allowance & merit grants</small>
-        </div>
-
-        <div
-          className="metric card clickable"
-          onClick={() => setActiveView('History')}
-          title="Click to view expense history"
-        >
-          <div className="metric-icon peach">
-            <ArrowUpRight size={18} />
-          </div>
-          <span>Money Out (Sep)</span>
-          <strong>{formatMoney(totalExpenses)}</strong>
-          <small>
-            Top: {topSpendingCategory.category} ({topSpendingCategory.percentage}%)
-          </small>
-        </div>
-
-        <div
-          className="metric card clickable"
-          onClick={onOpenHealthModal}
-          title="Click to see complete Health Score breakdown"
-        >
-          <div className="metric-icon lavender">
-            <Gauge size={18} />
-          </div>
-          <span>Financial Health</span>
-          <strong>{healthScore.overall} / 100</strong>
-          <small className="positive">Looking strong · Tap for breakdown</small>
         </div>
       </section>
 
-      {/* Main Grid: Spending Breakdown + AI Coach Card */}
-      <section className="main-grid">
+      {/* Image 4 Components: Monthly Overview Card */}
+      <section className="card monthly-overview-card">
+        <div className="monthly-overview-header">
+          <h3>Monthly Overview</h3>
+          <p className="muted">Your budget, usage and remaining balance.</p>
+        </div>
+
+        <div className="monthly-overview-body">
+          <div className="monthly-overview-stats">
+            <div className="monthly-stat-item">
+              <span className="stat-label">Total Budget</span>
+              <strong className="stat-value">{formatMoney(effectiveBudget)}</strong>
+            </div>
+
+            <div className="monthly-stat-item">
+              <span className="stat-label">Used</span>
+              <strong className="stat-value">{formatMoney(moneyUsed)}</strong>
+            </div>
+
+            <div className="monthly-stat-item has-divider">
+              <span className="stat-label">Left</span>
+              <strong className="stat-value text-green">{formatMoney(moneyLeft)}</strong>
+            </div>
+          </div>
+
+          {/* Circular Donut Gauge */}
+          <div className="monthly-overview-gauge-container">
+            <div className="gauge-box">
+              <svg viewBox="0 0 100 100" className="gauge-svg">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={gaugeRadius}
+                  fill="transparent"
+                  stroke="var(--line)"
+                  strokeWidth="9"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={gaugeRadius}
+                  fill="transparent"
+                  stroke="#1f9d67"
+                  strokeWidth="9"
+                  strokeLinecap="round"
+                  strokeDasharray={`${gaugeCircumference} ${gaugeCircumference}`}
+                  strokeDashoffset={gaugeDashoffset}
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div className="gauge-label">
+                <strong>{budgetPercent}%</strong>
+                <small>used</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Image 4 Components: 3 Action Cards */}
+      <section className="overview-action-grid">
+        <button
+          type="button"
+          className="action-shortcut-card expense"
+          onClick={onOpenAddExpense}
+        >
+          <div className="action-shortcut-left">
+            <div className="action-icon-badge expense">
+              <Plus size={18} strokeWidth={2.5} />
+            </div>
+            <div className="action-shortcut-text">
+              <strong>Add Expense</strong>
+              <small>Track where your money goes</small>
+            </div>
+          </div>
+          <ArrowRight size={17} className="action-arrow" />
+        </button>
+
+        <button
+          type="button"
+          className="action-shortcut-card income"
+          onClick={onOpenAddIncome || onOpenAddExpense}
+        >
+          <div className="action-shortcut-left">
+            <div className="action-icon-badge income">
+              <Plus size={18} strokeWidth={2.5} />
+            </div>
+            <div className="action-shortcut-text">
+              <strong>Add Income</strong>
+              <small>Increase your balance</small>
+            </div>
+          </div>
+          <ArrowRight size={17} className="action-arrow" />
+        </button>
+
+        <button
+          type="button"
+          className="action-shortcut-card details"
+          onClick={() => setActiveView('Budgets')}
+        >
+          <div className="action-shortcut-left">
+            <div className="action-icon-badge details">
+              <BarChart3 size={18} strokeWidth={2.2} />
+            </div>
+            <div className="action-shortcut-text">
+              <strong>View Details</strong>
+              <small>See full breakdown</small>
+            </div>
+          </div>
+          <ArrowRight size={17} className="action-arrow" />
+        </button>
+      </section>
+
+      {/* Main Grid: Spending Breakdown */}
+      <section className="main-grid single-card">
         {/* Spending Overview Card */}
         <div className="card spend-card">
           <div className="card-head">
@@ -343,108 +377,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </button>
           </div>
         </div>
-
-        {/* AI Coach Card */}
-        <div className="card coach-card">
-          <div className="coach-top-row">
-            <div className="coach-orb">
-              <Bot size={24} />
-            </div>
-            <span className="badge-pill">Finwise AI</span>
-          </div>
-
-          <p className="eyebrow">YOUR CONTEXTUAL COACH</p>
-          <h2>One small shift, a bigger month.</h2>
-          <p>
-            You spent <strong>{formatMoney(categoryTotals.Food || 0)}</strong> on Food so
-            far. Reducing food delivery by <strong>₹500</strong> could lift your projected
-            month-end balance to{' '}
-            <strong>{formatMoney(predictedMonthEnd + 500)}</strong> and keep your Laptop goal
-            on pace.
-          </p>
-
-          <div className="coach-actions-cluster">
-            <button
-              type="button"
-              className="dark-btn"
-              onClick={() => setActiveView('AI Coach')}
-            >
-              Ask Finwise AI <Sparkles size={16} />
-            </button>
-            <button
-              type="button"
-              className="why-btn"
-              onClick={onOpenSafeModal}
-            >
-              Why this advice?
-            </button>
-          </div>
-        </div>
       </section>
 
-      {/* Lower Grid: Recent Activity + Smart Budget */}
-      <section className="lower-grid">
-        {/* Recent Activity Card */}
-        <div className="card transactions-card">
-          <div className="card-head">
-            <div>
-              <p className="eyebrow">RECENT ACTIVITY</p>
-              <h2>Latest Transactions</h2>
-            </div>
-            <button
-              type="button"
-              className="text-btn"
-              onClick={() => setActiveView('History')}
-            >
-              See all ({transactions.length}) <ChevronRight size={15} />
-            </button>
-          </div>
-
-          <div className="search-box">
-            <Search size={16} />
-            <input
-              placeholder="Search merchant, category, or note..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-
-          <div className="transaction-list">
-            {filteredRecent.length === 0 ? (
-              <p className="empty-text">No transactions match your search.</p>
-            ) : (
-              filteredRecent.map((item) => (
-                <div
-                  key={item.id}
-                  className="transaction clickable"
-                  onClick={() => onSelectTransaction(item)}
-                  title="Click to view, edit, or delete"
-                >
-                  <div
-                    className={`merchant-icon ${item.category.toLowerCase()}`}
-                  >
-                    {item.category.slice(0, 3)}
-                  </div>
-                  <div className="transaction-name">
-                    <strong>{item.merchant}</strong>
-                    <small>
-                      {item.category} · {item.displayDate || item.date}
-                      {item.paymentMethod ? ` · ${item.paymentMethod}` : ''}
-                    </small>
-                  </div>
-                  <strong
-                    className={item.type === 'income' ? 'income' : 'expense'}
-                  >
-                    {item.type === 'income' ? '+' : '-'}
-                    {formatMoney(item.amount)}
-                  </strong>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Smart Budget Card */}
+      {/* Smart Budget Card */}
+      <section className="lower-grid single-card">
         <div className="card budget-card">
           <div className="card-head">
             <div>
@@ -514,61 +450,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
       </section>
 
-      {/* Quick Action Grid */}
-      <section className="quick-grid">
-        {/* Goal Card */}
-        <div
-          className="quick-card card clickable"
-          onClick={() => setActiveView('Goals')}
-          title="Open savings goals"
-        >
-          <div className="quick-icon mint">
-            <Target size={18} />
-          </div>
-          <div className="quick-info">
-            <strong>Save for {primaryGoal.title}</strong>
-            <small>
-              {formatMoney(primaryGoal.savedAmount)} of {formatMoney(primaryGoal.targetAmount)}
-            </small>
-          </div>
-          <b>{goalPercent}%</b>
-          <ChevronRight size={16} />
-        </div>
-
-        {/* Safe to Spend Today Card */}
-        <div
-          className="quick-card card clickable"
-          onClick={onOpenSafeModal}
-          title="Click to see full Safe to Spend breakdown"
-        >
-          <div className="quick-icon lavender">
-            <Sparkles size={18} />
-          </div>
-          <div className="quick-info">
-            <strong>Safe to spend today</strong>
-            <small>Tap to see formula & upcoming bills</small>
-          </div>
-          <b>{formatMoney(safeToSpend.safeDaily)}</b>
-          <ChevronRight size={16} />
-        </div>
-
-        {/* Can I Afford This? Card */}
-        <div
-          className="quick-card card clickable"
-          onClick={onOpenAffordModal}
-          title="Test an upcoming expense before buying"
-        >
-          <div className="quick-icon peach">
-            <HelpCircle size={18} />
-          </div>
-          <div className="quick-info">
-            <strong>Can I Afford This?</strong>
-            <small>AI impact prediction engine</small>
-          </div>
-          <b>Check</b>
-          <ChevronRight size={16} />
-        </div>
-      </section>
     </div>
   )
 }

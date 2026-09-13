@@ -11,7 +11,10 @@ import type {
   UserProfile,
   AffordabilityResult,
   OnboardingAnswers,
+  AiCoachResponse,
 } from '../types'
+import { processBudgetAdvisorQuery, callGeminiAdvisor } from '../utils/budgetAiAdvisor'
+
 
 interface FinancialContextType {
   // State
@@ -53,6 +56,8 @@ interface FinancialContextType {
   addBudget: (budget: Omit<Budget, 'id'>) => void
   updateBudget: (id: string, updated: Partial<Budget>) => void
   deleteBudget: (id: string) => void
+  setCategoryBudget: (category: Category, limit: number, period?: 'monthly' | 'weekly') => void
+  applyBudgetPlan: (plan: Array<{ category: Category; limit: number; period?: 'monthly' | 'weekly' }>) => void
 
   addGoal: (goal: Omit<Goal, 'id' | 'savedAmount'> & { initialDeposit?: number }) => void
   updateGoal: (id: string, updated: Partial<Goal>) => void
@@ -70,17 +75,17 @@ interface FinancialContextType {
   generatePersonalizedPlan: (answers: OnboardingAnswers) => void
 
   evaluateAffordability: (item: string, amount: number, category?: Category) => AffordabilityResult
-  askAiCoach: (query: string) => Promise<string>
+  askAiCoach: (query: string) => Promise<AiCoachResponse>
   formatMoney: (amount: number) => string
 }
 
 const STORAGE_KEY = 'finwise_student_data_v2'
 
 const initialProfile: UserProfile = {
-  name: 'Arjun Sharma',
+  name: 'Nishita',
   college: 'IIT Delhi · Computer Science',
   plan: 'Student Pro',
-  avatarInitials: 'AS',
+  avatarInitials: 'N',
   monthlyAllowance: 15000,
   streakDays: 5,
   currency: '₹',
@@ -89,6 +94,7 @@ const initialProfile: UserProfile = {
   privacyMode: false,
   notificationsEnabled: true,
   hasCompletedOnboarding: false,
+
 }
 
 const initialTransactions: Transaction[] = [
@@ -373,7 +379,15 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [profile, setProfile] = useState<UserProfile>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_profile`)
-      return saved ? JSON.parse(saved) : initialProfile
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed.name === 'Arjun Sharma' || parsed.name === 'Arjun' || !parsed.name) {
+          parsed.name = 'Nishita'
+          parsed.avatarInitials = 'N'
+        }
+        return parsed
+      }
+      return initialProfile
     } catch {
       return initialProfile
     }
@@ -448,7 +462,11 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const formatMoney = useCallback(
     (amount: number) => {
       const sym = profile.currency || '₹'
-      return `${sym}${Math.abs(amount).toLocaleString('en-IN')}`
+      const hasDecimals = amount % 1 !== 0
+      return `${sym}${Math.abs(amount).toLocaleString('en-IN', {
+        minimumFractionDigits: hasDecimals ? 2 : 0,
+        maximumFractionDigits: 2,
+      })}`
     },
     [profile.currency]
   )
@@ -745,6 +763,82 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setBudgets((prev) => prev.filter((item) => item.id !== id))
   }
 
+  const setCategoryBudget = (category: Category, limit: number, period: 'monthly' | 'weekly' = 'monthly') => {
+    setBudgets((prev) => {
+      const existingIndex = prev.findIndex(
+        (b) => b.category.toLowerCase() === category.toLowerCase()
+      )
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          limit,
+          period,
+        }
+        return updated
+      } else {
+        const categoryColors: Record<Category, string> = {
+          Food: '#1f9d67',
+          Travel: '#5385d5',
+          Education: '#8669c7',
+          Shopping: '#c7764e',
+          Subscriptions: '#279265',
+          Entertainment: '#d97706',
+          Bills: '#dc2626',
+          Health: '#0891b2',
+          Income: '#10b981',
+          Other: '#64748b',
+        }
+        const newBudget: Budget = {
+          id: `b-${Date.now()}`,
+          category,
+          limit,
+          period,
+          color: categoryColors[category] || '#64748b',
+        }
+        return [...prev, newBudget]
+      }
+    })
+  }
+
+  const applyBudgetPlan = (plan: Array<{ category: Category; limit: number; period?: 'monthly' | 'weekly' }>) => {
+    setBudgets((prev) => {
+      const updated = [...prev]
+      const categoryColors: Record<Category, string> = {
+        Food: '#1f9d67',
+        Travel: '#5385d5',
+        Education: '#8669c7',
+        Shopping: '#c7764e',
+        Subscriptions: '#279265',
+        Entertainment: '#d97706',
+        Bills: '#dc2626',
+        Health: '#0891b2',
+        Income: '#10b981',
+        Other: '#64748b',
+      }
+      plan.forEach((item) => {
+        const idx = updated.findIndex((b) => b.category.toLowerCase() === item.category.toLowerCase())
+        if (idx >= 0) {
+          updated[idx] = {
+            ...updated[idx],
+            limit: item.limit,
+            period: item.period || 'monthly',
+          }
+        } else {
+          updated.push({
+            id: `b-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            category: item.category,
+            limit: item.limit,
+            period: item.period || 'monthly',
+            color: categoryColors[item.category] || '#64748b',
+          })
+        }
+      })
+      return updated
+    })
+  }
+
+
   const addGoal = (goalData: Omit<Goal, 'id' | 'savedAmount'> & { initialDeposit?: number }) => {
     const initialDeposit = goalData.initialDeposit || 0
     const newGoal: Goal = {
@@ -853,7 +947,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const generatePersonalizedPlan = (answers: OnboardingAnswers) => {
     // 1. Update Profile
-    const studentName = answers.name.trim() || 'Arjun Sharma'
+    const studentName = answers.name.trim() || 'Nishita'
     const studentCollege = answers.college.trim() || 'IIT Delhi · Computer Science'
     const updatedProfile: UserProfile = {
       ...profile,
@@ -1034,58 +1128,68 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }
 
-  // Intelligent Contextual AI Coach
-  const askAiCoach = async (query: string): Promise<string> => {
-    // Simulate brief thinking time
-    await new Promise((resolve) => setTimeout(resolve, 450))
-
-    const q = query.toLowerCase()
-
-    if (q.includes('where') && (q.includes('money') || q.includes('go') || q.includes('spend'))) {
-      return `Looking at your actual records for September: You spent a total of ${formatMoney(totalExpenses)}. Your #1 expense category is **${topSpendingCategory.category}** at ${formatMoney(topSpendingCategory.amount)} (${topSpendingCategory.percentage}% of all expenses), followed by **Travel** at ${formatMoney(categoryTotals.Travel || 0)} and **Education** at ${formatMoney(categoryTotals.Education || 0)}. Canteen meals and Swiggy orders represent the biggest flexible leak.`
+  // Intelligent Contextual AI Coach with Budget Engine & Optional Gemini LLM
+  const askAiCoach = async (query: string): Promise<AiCoachResponse> => {
+    const advisorContext = {
+      profile,
+      budgets,
+      categoryTotals,
+      totalIncome,
+      totalExpenses,
+      currentBalance,
+      safeToSpend,
+      healthScore,
+      predictedMonthEnd,
+      moneyRunwayDays,
+      topSpendingCategory,
+      goals,
+      formatMoney,
+      transactions,
+      subscriptions,
+      evaluateAffordability,
     }
 
-    if (q.includes('food') || q.includes('swiggy') || q.includes('mess')) {
-      const foodSpent = categoryTotals.Food || 0
-      const foodBudget = budgets.find((b) => b.category === 'Food')?.limit || 4000
-      const pct = Math.round((foodSpent / foodBudget) * 100)
-      return `You have spent **${formatMoney(foodSpent)}** on Food out of your ${formatMoney(foodBudget)} budget (${pct}% used). With 28 days left in the month, you should aim to cap food delivery to ${formatMoney(Math.floor((foodBudget - foodSpent) / 28))}/day to avoid going over.`
-    }
-
-    if (q.includes('can i spend') || q.includes('spend today') || q.includes('500')) {
-      const safe = safeToSpend.safeDaily
-      if (q.includes('500')) {
-        return `Your calculated safe limit for today is **${formatMoney(safe)}**. Spending ₹500 today is **feasible but slightly above pace** by ₹${500 - safe}. If you spend ₹500 today, compensate tomorrow by keeping under ₹${Math.max(100, safe - (500 - safe))}.`
+    // Check if user has configured an optional Gemini API key for live generative AI
+    const geminiKey =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('finwise_gemini_api_key')
+        : null
+    if (geminiKey && geminiKey.trim().length > 10) {
+      try {
+        const geminiResult = await callGeminiAdvisor(query, advisorContext, geminiKey.trim())
+        if (geminiResult && geminiResult.text) {
+          // If the query was to set or update a budget, also check and execute local action
+          const localActionCheck = processBudgetAdvisorQuery(query, advisorContext)
+          if (localActionCheck.budgetActionToExecute) {
+            const { category, limit, period } = localActionCheck.budgetActionToExecute
+            setCategoryBudget(category, limit, period)
+            return {
+              text: geminiResult.text,
+              actionData: localActionCheck.actionData,
+            }
+          }
+          return {
+            text: geminiResult.text,
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini API call failed, falling back to local advisor:', err)
       }
-      return `Your **Safe to Spend today is ${formatMoney(safe)}**. This preserves your ₹${safeToSpend.upcomingBillsTotal} upcoming bills and your monthly goal reserves across the remaining ${safeToSpend.daysRemainingInMonth} days of September.`
     }
 
-    if (q.includes('how much can i save') || q.includes('save this month')) {
-      return `Based on your ${formatMoney(totalIncome)} income and normal spending trajectory, you are projected to save **${formatMoney(predictedMonthEnd)}** this month. If you hold dining out to mess meals twice weekly, you can push your total savings to **${formatMoney(predictedMonthEnd + 1200)}**.`
+    // Local deterministic engine (instant, comprehensive, zero failure)
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    const result = processBudgetAdvisorQuery(query, advisorContext)
+
+    if (result.budgetActionToExecute) {
+      const { category, limit, period } = result.budgetActionToExecute
+      setCategoryBudget(category, limit, period)
     }
 
-    if (q.includes('cut') || q.includes('save 2000') || q.includes('2,000') || q.includes('reduce')) {
-      return `To save ₹2,000 this month, here is an actionable 3-part student plan:\n1. **Food Delivery**: Cut 2 Swiggy orders per week → Saves ~₹900/month.\n2. **Shopping**: Postpone non-essential accessories on Amazon until exams end → Saves ~₹800.\n3. **Metro / Transit**: Use student monthly pass rather than frequent single tokens → Saves ~₹300.\nTotal targeted savings: **₹2,000** exactly.`
+    return {
+      text: result.text,
+      actionData: result.actionData,
     }
-
-    if (q.includes('score') || q.includes('health')) {
-      return `Your Financial Health Score is **${healthScore.overall}/100**. Here is why:\n- Budget Discipline: **${healthScore.budgetDisciplineScore}/30** (Great adherence on books & travel)\n- Savings Rate: **${healthScore.savingsRateScore}/25** (Solid student surplus)\n- Runway Buffer: **${healthScore.runwayScore}/25** (~${moneyRunwayDays} days of living expenses)\n- Goal Progress: **${healthScore.goalPaceScore}/20** (On track for Laptop)\nTo hit 90+, keep Food under 75% utilization.`
-    }
-
-    if (q.includes('end of the month') || q.includes('month end') || q.includes('projected') || q.includes('balance')) {
-      return `Your projected end-of-month balance is **${formatMoney(predictedMonthEnd)}**. This assumes an average daily expenditure of ${formatMoney(safeToSpend.safeDaily)} and deducts your upcoming Spotify, Netflix, and Wi-Fi bills.`
-    }
-
-    if (q.includes('laptop') || q.includes('goal')) {
-      const laptop = goals.find((g) => g.id === 'g-1')
-      if (laptop) {
-        const remaining = laptop.targetAmount - laptop.savedAmount
-        return `You have saved **${formatMoney(laptop.savedAmount)}** towards your ${laptop.title} (${Math.round((laptop.savedAmount / laptop.targetAmount) * 100)}% complete). Remaining: ${formatMoney(remaining)}. Depositing ₹${Math.ceil(remaining / 9).toLocaleString('en-IN')}/month will hit your target by June 2027.`
-      }
-    }
-
-    // Default intelligent student finance assistant reply
-    return `Looking at your student dashboard: You have ${formatMoney(currentBalance)} in liquid balance, your safe daily spend is ${formatMoney(safeToSpend.safeDaily)}, and your financial health score is ${healthScore.overall}/100. Feel free to ask about your budgets, specific transactions, goals, or whether you can afford an upcoming purchase!`
   }
 
   return (
@@ -1117,6 +1221,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         addBudget,
         updateBudget,
         deleteBudget,
+        setCategoryBudget,
+        applyBudgetPlan,
         addGoal,
         updateGoal,
         deleteGoal,

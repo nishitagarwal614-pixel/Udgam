@@ -40,7 +40,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (onCloseMobile) onCloseMobile()
   }
 
-  const workspaceNav = [
+  interface NavItem {
+    label: string
+    view: string
+    icon: React.ComponentType<{ size?: number | string }>
+    badge?: string
+    highlightBadge?: string
+  }
+
+  const workspaceNav: NavItem[] = [
     { label: 'Overview', view: 'Overview', icon: LayoutDashboard },
     { label: 'Transactions', view: 'Transactions', icon: Activity },
     { label: 'History', view: 'History', icon: History },
@@ -48,13 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: 'Insights', view: 'Insights', icon: TrendingUp, badge: '3' },
     { label: 'Predictions', view: 'Predictions', icon: Sparkles },
     { label: 'Goals', view: 'Goals', icon: Target },
-    {
-      label: 'Receipt Scanner',
-      view: 'Receipt Scanner',
-      icon: Camera,
-      highlightBadge: 'AI OCR',
-    },
-    { label: 'AI Coach', view: 'AI Coach', icon: Bot },
+    { label: 'Finwise AI', view: 'AI Coach', icon: Bot, highlightBadge: '2.0' },
   ]
 
   const manageNav = [

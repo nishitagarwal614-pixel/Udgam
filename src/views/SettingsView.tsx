@@ -75,7 +75,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSuccessToast }) =>
   const handleReset = () => {
     if (window.confirm('Reset all financial data back to student defaults?')) {
       resetDataToDefault()
-      setName('Arjun Sharma')
+      setName('Nishita')
       setCollege('IIT Delhi · Computer Science')
       setAllowance(15000)
       setCurrency('₹')
