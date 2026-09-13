@@ -1,9 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import {
-  CheckCircle2,
-  Zap,
-  RotateCcw,
-} from 'lucide-react'
+import { CheckCircle2, Zap, RotateCcw } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 
 interface PredictionsViewProps {
@@ -19,28 +15,50 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
     totalExpenses,
     safeToSpend,
     predictedMonthEnd,
+    categoryTotals,
+    goals,
     formatMoney,
   } = useFinancial()
 
   // What-If Simulator Controls
-  const [simIncomeDelta, setSimIncomeDelta] = useState(0) // slider: -5000 to +10000
-  const [simDailySpendChange, setSimDailySpendChange] = useState(0) // slider: -150 to +300
-  const [simOneTimePurchase, setSimOneTimePurchase] = useState(0) // slider: 0 to 5000
+  const [simIncomeDelta, setSimIncomeDelta] = useState(0)
+  const [simDailySpendChange, setSimDailySpendChange] = useState(0)
+  const [simOneTimePurchase, setSimOneTimePurchase] = useState(0)
 
   // Digital Twin Active Scenario
-  const [twinScenario, setTwinScenario] = useState<'baseline' | 'food20' | 'save1k' | 'freelance'>('baseline')
+  const [twinScenario, setTwinScenario] = useState<
+    'baseline' | 'food20' | 'save1k' | 'freelance'
+  >('baseline')
 
-  // Calculate What-If simulated results
+  const daysRemainingInMonth = Math.max(
+    1,
+    safeToSpend.daysRemainingInMonth || 1,
+  )
+
+  // Calculate What-If simulated results from the user's actual data.
   const simulatedResults = useMemo(() => {
-    const daysLeft = 28
     const baseDailySpend = safeToSpend.safeDaily
-    const newDailySpend = Math.max(50, baseDailySpend + simDailySpendChange)
-    const simulatedTotalOutflow = newDailySpend * daysLeft + safeToSpend.upcomingBillsTotal + simOneTimePurchase
-    const simulatedTotalInflow = totalIncome + simIncomeDelta
+    const newDailySpend = Math.max(0, baseDailySpend + simDailySpendChange)
+
+    const simulatedTotalOutflow =
+      newDailySpend * daysRemainingInMonth +
+      safeToSpend.upcomingBillsTotal +
+      simOneTimePurchase
+
+    const simulatedTotalInflow = Math.max(
+      0,
+      totalIncome + simIncomeDelta,
+    )
+
     const simulatedEndingBalance = Math.max(
       0,
-      currentBalance + simIncomeDelta - (newDailySpend * daysLeft) - simOneTimePurchase - safeToSpend.upcomingBillsTotal
+      currentBalance +
+        simIncomeDelta -
+        newDailySpend * daysRemainingInMonth -
+        simOneTimePurchase -
+        safeToSpend.upcomingBillsTotal,
     )
+
     const deltaFromBaseline = simulatedEndingBalance - predictedMonthEnd
 
     return {
@@ -50,67 +68,109 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
       simulatedTotalInflow,
       simulatedTotalOutflow,
     }
-  }, [currentBalance, totalIncome, safeToSpend, simIncomeDelta, simDailySpendChange, simOneTimePurchase, predictedMonthEnd])
+  }, [
+    currentBalance,
+    totalIncome,
+    safeToSpend,
+    simIncomeDelta,
+    simDailySpendChange,
+    simOneTimePurchase,
+    predictedMonthEnd,
+    daysRemainingInMonth,
+  ])
 
-  // Digital Twin 6-Month Projections
+  // Digital Twin 6-Month Projections.
+  // All baseline values come from the user's actual recorded data.
   const twinProjections = useMemo(() => {
-    const baseMonthlySavings = Math.max(1000, totalIncome - totalExpenses)
+    const baseMonthlySavings = Math.max(
+      0,
+      totalIncome - totalExpenses,
+    )
 
     switch (twinScenario) {
       case 'food20': {
-        const extraSaved = 800
+        const currentFoodSpend = categoryTotals.Food || 0
+        const extraSaved = Math.round(currentFoodSpend * 0.2)
         const monthly = baseMonthlySavings + extraSaved
+
         return {
-          title: 'Reduce Food Delivery by 20%',
+          title: 'Reduce Food Spending by 20%',
           sixMonthSavings: monthly * 6,
           gain: extraSaved * 6,
           description:
-            'By substituting 2 restaurant/Swiggy orders each week with mess dining, you pocket an extra ₹800/month.',
-          milestone: 'Laptop goal deadline moves up by 2 full months.',
+            currentFoodSpend > 0
+              ? `If you reduce your current Food spending by 20%, your projected monthly savings increase by ${formatMoney(extraSaved)}.`
+              : 'Record some Food spending first to calculate the effect of a 20% reduction.',
+          milestone:
+            goals.length > 0
+              ? `This increases the amount available for your active savings goals.`
+              : 'This increases the amount available for future savings goals.',
         }
       }
+
       case 'save1k': {
         const extraSaved = 1000
         const monthly = baseMonthlySavings + extraSaved
+
         return {
           title: 'Save ₹1,000 Extra / Month',
           sixMonthSavings: monthly * 6,
           gain: extraSaved * 6,
           description:
-            'Automating a ₹250 weekly micro-deposit right when pocket money arrives builds effortless long-term momentum.',
-          milestone: 'Fully covers your Semester-end Goa trip with zero debt.',
+            'A hypothetical extra ₹1,000 saved each month is applied to your current savings rate.',
+          milestone:
+            goals.length > 0
+              ? 'The additional savings can accelerate your active goals.'
+              : 'The additional savings can be allocated to a future savings goal.',
         }
       }
+
       case 'freelance': {
         const extraEarned = 3500
         const monthly = baseMonthlySavings + extraEarned
+
         return {
-          title: 'Weekend Tutoring / Coding Gig',
+          title: 'Add ₹3,500 Extra Income / Month',
           sixMonthSavings: monthly * 6,
           gain: extraEarned * 6,
           description:
-            'Taking a 4-hour weekend campus lab tutoring or coding freelance gig adds ₹3,500/month in discretionary stipend.',
-          milestone: 'MacBook Pro goal fully funded by December 2026.',
+            'A hypothetical additional ₹3,500 monthly income is applied to your current savings rate.',
+          milestone:
+            goals.length > 0
+              ? 'The additional income can increase contributions toward your active goals.'
+              : 'The additional income can strengthen your future savings buffer.',
         }
       }
-      default: {
+
+      default:
         return {
           title: 'Current Behavior (Baseline)',
           sixMonthSavings: baseMonthlySavings * 6,
           gain: 0,
           description:
-            'Maintaining your current balance between campus mess, occasional Swiggy, and steady stipend income.',
-          milestone: 'Steady progress toward goals; keeps safety cushion intact.',
+            totalIncome > 0 || totalExpenses > 0
+              ? 'Projects six months using your current recorded income and expenses as the baseline.'
+              : 'Add income and expenses to create a personalized six-month baseline.',
+          milestone:
+            goals.length > 0
+              ? 'Your current savings rate is projected across six months.'
+              : 'Add a savings goal if you want to track a specific target.',
         }
-      }
     }
-  }, [twinScenario, totalIncome, totalExpenses])
+  }, [
+    twinScenario,
+    totalIncome,
+    totalExpenses,
+    categoryTotals,
+    goals,
+    formatMoney,
+  ])
 
   const resetWhatIf = () => {
     setSimIncomeDelta(0)
     setSimDailySpendChange(0)
     setSimOneTimePurchase(0)
-    onSuccessToast('Reset What-If simulator to current live baseline.')
+    onSuccessToast('Reset What-If simulator to your current live baseline.')
   }
 
   return (
@@ -120,76 +180,24 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
           <p className="eyebrow">FINANCIAL DIGITAL TWIN & FORECASTING</p>
           <h1>Cashflow Predictions</h1>
           <p className="muted">
-            Simulate your future financial trajectory, test scenarios, and project month-end buffers.
+            Simulate your future financial trajectory, test scenarios, and
+            project month-end buffers using your recorded data.
           </p>
         </div>
       </section>
 
-      {/* Feature 1: Month-End Balance Projection Curve */}
-      <div className="card prediction-hero-card" style={{ marginBottom: '24px' }}>
-        <div className="prediction-hero-content">
-          <div>
-            <p className="eyebrow">PROJECTED MONTH-END BALANCE</p>
-            <strong className="prediction-amount">{formatMoney(predictedMonthEnd)}</strong>
-            <p className="muted">
-              Based on your {formatMoney(safeToSpend.safeDaily)}/day safe-to-spend allowance,
-              current balance of {formatMoney(currentBalance)}, and {formatMoney(safeToSpend.upcomingBillsTotal)} in scheduled bills.
-            </p>
-          </div>
-
-          {/* Clean Interactive SVG Line Chart */}
-          <div className="prediction-graph-container">
-            <svg viewBox="0 0 360 140" className="prediction-chart-svg">
-              <defs>
-                <linearGradient id="predGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#1f9d67" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#1f9d67" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              {/* Grid Lines */}
-              <line x1="0" y1="35" x2="360" y2="35" stroke="var(--line)" strokeDasharray="3" />
-              <line x1="0" y1="75" x2="360" y2="75" stroke="var(--line)" strokeDasharray="3" />
-              <line x1="0" y1="115" x2="360" y2="115" stroke="var(--line)" strokeDasharray="3" />
-
-              {/* Shaded Area */}
-              <path
-                d="M 20 40 Q 110 50, 200 70 T 340 90 L 340 130 L 20 130 Z"
-                fill="url(#predGrad)"
-              />
-
-              {/* Main Trend Line */}
-              <path
-                d="M 20 40 Q 110 50, 200 70 T 340 90"
-                fill="none"
-                stroke="#1f9d67"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-
-              {/* Current Date Dot */}
-              <circle cx="20" cy="40" r="5" fill="#1f9d67" />
-              <circle cx="340" cy="90" r="5" fill="#1f9d67" />
-            </svg>
-
-            <div className="graph-labels-row">
-              <span>02 Sep (Today: {formatMoney(currentBalance)})</span>
-              <span>15 Sep (Mid-month)</span>
-              <span>30 Sep ({formatMoney(predictedMonthEnd)})</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Feature 2: WHAT-IF SIMULATOR */}
+      {/* WHAT-IF SIMULATOR */}
       <div className="card whatif-card" style={{ marginBottom: '24px' }}>
         <div className="card-head">
           <div>
             <p className="eyebrow">INTERACTIVE SANDBOX</p>
             <h2>What-If Simulator</h2>
             <p className="muted">
-              Slide parameters to see immediate ripple effects on your month-end reserves.
+              Adjust the controls to see immediate changes to your projected
+              month-end balance.
             </p>
           </div>
+
           <button
             type="button"
             className="secondary-btn small"
@@ -200,14 +208,17 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
         </div>
 
         <div className="whatif-controls-grid">
-          {/* Slider 1: Monthly Income Delta */}
+          {/* Monthly Income */}
           <div className="slider-box">
             <div className="slider-header">
-              <span>Monthly Allowance / Stipend Change</span>
+              <span>Monthly Income Change</span>
               <strong>
-                {simIncomeDelta >= 0 ? `+${formatMoney(simIncomeDelta)}` : `-${formatMoney(Math.abs(simIncomeDelta))}`}
+                {simIncomeDelta >= 0
+                  ? `+${formatMoney(simIncomeDelta)}`
+                  : `-${formatMoney(Math.abs(simIncomeDelta))}`}
               </strong>
             </div>
+
             <input
               type="range"
               min="-4000"
@@ -216,6 +227,7 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
               value={simIncomeDelta}
               onChange={(e) => setSimIncomeDelta(Number(e.target.value))}
             />
+
             <div className="slider-hints">
               <span>-₹4,000</span>
               <span>Baseline</span>
@@ -223,7 +235,7 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
             </div>
           </div>
 
-          {/* Slider 2: Daily Spending Change */}
+          {/* Daily Spending */}
           <div className="slider-box">
             <div className="slider-header">
               <span>Daily Spend Adjustment</span>
@@ -233,126 +245,165 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
                   : `-${formatMoney(Math.abs(simDailySpendChange))} / day`}
               </strong>
             </div>
+
             <input
               type="range"
               min="-150"
               max="250"
               step="25"
               value={simDailySpendChange}
-              onChange={(e) => setSimDailySpendChange(Number(e.target.value))}
+              onChange={(e) =>
+                setSimDailySpendChange(Number(e.target.value))
+              }
             />
+
             <div className="slider-hints">
               <span>-₹150 (Frugal)</span>
-              <span>Baseline (₹{safeToSpend.safeDaily})</span>
+              <span>Baseline ({formatMoney(safeToSpend.safeDaily)})</span>
               <span>+₹250 (Splurge)</span>
             </div>
           </div>
 
-          {/* Slider 3: One-Time Purchase */}
+          {/* One-Time Purchase */}
           <div className="slider-box">
             <div className="slider-header">
               <span>One-Time Purchase / Event</span>
               <strong>{formatMoney(simOneTimePurchase)}</strong>
             </div>
+
             <input
               type="range"
               min="0"
               max="4000"
               step="250"
               value={simOneTimePurchase}
-              onChange={(e) => setSimOneTimePurchase(Number(e.target.value))}
+              onChange={(e) =>
+                setSimOneTimePurchase(Number(e.target.value))
+              }
             />
+
             <div className="slider-hints">
               <span>₹0</span>
-              <span>₹2,000 (Fest / Shoes)</span>
-              <span>₹4,000 (Gadget)</span>
+              <span>₹2,000</span>
+              <span>₹4,000</span>
             </div>
           </div>
         </div>
 
-        {/* Live Simulation Output Box */}
+        {/* Live Simulation Output */}
         <div className="simulation-feedback-banner">
           <div className="sim-metric">
             <span>Simulated Safe Daily Spend</span>
-            <strong>{formatMoney(simulatedResults.newDailySpend)} / day</strong>
+            <strong>
+              {formatMoney(simulatedResults.newDailySpend)} / day
+            </strong>
           </div>
+
           <div className="sim-metric">
             <span>Simulated Month-End Balance</span>
             <strong
-              style={{
-                color: simulatedResults.deltaFromBaseline >= 0 ? '#1f9d67' : '#dc2626',
-              }}
+              className={
+                simulatedResults.deltaFromBaseline >= 0
+                  ? 'positive'
+                  : 'negative'
+              }
             >
               {formatMoney(simulatedResults.simulatedEndingBalance)}
             </strong>
           </div>
+
           <div className="sim-metric">
             <span>Impact vs Baseline</span>
             <strong
-              style={{
-                color: simulatedResults.deltaFromBaseline >= 0 ? '#1f9d67' : '#dc2626',
-              }}
+              className={
+                simulatedResults.deltaFromBaseline >= 0
+                  ? 'positive'
+                  : 'negative'
+              }
             >
               {simulatedResults.deltaFromBaseline >= 0 ? '+' : ''}
               {formatMoney(simulatedResults.deltaFromBaseline)}
             </strong>
           </div>
         </div>
+
+        <p className="muted simulation-note">
+          Simulation inflow: {formatMoney(simulatedResults.simulatedTotalInflow)}
+          {' · '}
+          projected outflow: {formatMoney(simulatedResults.simulatedTotalOutflow)}
+        </p>
       </div>
 
-      {/* Feature 3: FINANCIAL DIGITAL TWIN */}
+      {/* FINANCIAL DIGITAL TWIN */}
       <div className="card digital-twin-card">
         <div className="card-head">
           <div>
             <p className="eyebrow">FINANCIAL DIGITAL TWIN</p>
             <h2>6-Month Future Simulation</h2>
             <p className="muted">
-              Compare how different student behavioral choices alter your wealth in 6 months.
+              Compare how different hypothetical choices could change your
+              six-month savings trajectory.
             </p>
           </div>
-          <Zap size={20} color="#1f9d67" />
+
+          <Zap size={20} />
         </div>
 
         <div className="tab-pill-group" style={{ margin: '16px 0' }}>
           <button
             type="button"
-            className={`tab-pill ${twinScenario === 'baseline' ? 'active' : ''}`}
+            className={`tab-pill ${
+              twinScenario === 'baseline' ? 'active' : ''
+            }`}
             onClick={() => setTwinScenario('baseline')}
           >
             Current Behavior
           </button>
+
           <button
             type="button"
-            className={`tab-pill ${twinScenario === 'food20' ? 'active' : ''}`}
+            className={`tab-pill ${
+              twinScenario === 'food20' ? 'active' : ''
+            }`}
             onClick={() => setTwinScenario('food20')}
           >
-            -20% Food Delivery
+            -20% Food Spending
           </button>
+
           <button
             type="button"
-            className={`tab-pill ${twinScenario === 'save1k' ? 'active' : ''}`}
+            className={`tab-pill ${
+              twinScenario === 'save1k' ? 'active' : ''
+            }`}
             onClick={() => setTwinScenario('save1k')}
           >
-            +₹1,000 Extra Savings
+            +₹1,000 Savings
           </button>
+
           <button
             type="button"
-            className={`tab-pill ${twinScenario === 'freelance' ? 'active' : ''}`}
+            className={`tab-pill ${
+              twinScenario === 'freelance' ? 'active' : ''
+            }`}
             onClick={() => setTwinScenario('freelance')}
           >
-            Weekend Tutoring Gig
+            +₹3,500 Income
           </button>
         </div>
 
         <div className="twin-scenario-display">
           <div className="twin-highlight-box">
-            <span className="eyebrow">PROJECTED 6-MONTH ACCUMULATED SAVINGS</span>
+            <span className="eyebrow">
+              PROJECTED 6-MONTH ACCUMULATED SAVINGS
+            </span>
+
             <strong className="twin-amount">
               {formatMoney(twinProjections.sixMonthSavings)}
             </strong>
+
             {twinProjections.gain > 0 && (
               <span className="gain-chip">
-                +{formatMoney(twinProjections.gain)} higher than baseline
+                +{formatMoney(twinProjections.gain)} vs baseline
               </span>
             )}
           </div>
@@ -360,10 +411,11 @@ export const PredictionsView: React.FC<PredictionsViewProps> = ({
           <div className="twin-narrative">
             <h3>{twinProjections.title}</h3>
             <p>{twinProjections.description}</p>
+
             <div className="milestone-box">
-              <CheckCircle2 size={16} color="#1f9d67" />
+              <CheckCircle2 size={16} />
               <span>
-                <strong>Milestone:</strong> {twinProjections.milestone}
+                <strong>Impact:</strong> {twinProjections.milestone}
               </span>
             </div>
           </div>

@@ -24,6 +24,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
     deleteGoal,
     contributeToGoal,
     currentBalance,
+    profile,
     formatMoney,
   } = useFinancial()
 
@@ -33,14 +34,14 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
   const [activeGoalForDeposit, setActiveGoalForDeposit] = useState<Goal | null>(null)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
 
-  // Goal Form Fields
+  // Goal form fields
   const [title, setTitle] = useState('')
   const [targetAmount, setTargetAmount] = useState<number | ''>('')
   const [category, setCategory] = useState('Gadget')
-  const [targetDate, setTargetDate] = useState('2027-06-30')
+  const [targetDate, setTargetDate] = useState('')
   const [initialDeposit, setInitialDeposit] = useState<number | ''>('')
 
-  // Deposit Form Fields
+  // Deposit form fields
   const [depositAmount, setDepositAmount] = useState<number | ''>(500)
 
   const openCreateModal = () => {
@@ -48,7 +49,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
     setTitle('')
     setTargetAmount('')
     setCategory('Gadget')
-    setTargetDate('2027-06-30')
+    setTargetDate('')
     setInitialDeposit('')
     setIsGoalModalOpen(true)
   }
@@ -71,8 +72,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
   const handleSaveGoal = (e: React.FormEvent) => {
     e.preventDefault()
+
     const target = Number(targetAmount)
-    if (!title.trim() || !target || target <= 0) return
+    if (!title.trim() || !target || target <= 0 || !targetDate) return
 
     if (editingGoal) {
       updateGoal(editingGoal.id, {
@@ -100,6 +102,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
   const handleDepositSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!activeGoalForDeposit) return
+
     const amount = Number(depositAmount)
     if (!amount || amount <= 0) return
 
@@ -118,18 +121,72 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
     onSuccessToast(`Deleted goal: ${goalTitle}`)
   }
 
-  // Calculate required monthly saving for a goal
+  // Calculate required monthly saving from today's actual date.
   const calculateMonthlySaving = (goal: Goal) => {
     const remaining = Math.max(0, goal.targetAmount - goal.savedAmount)
-    const deadline = new Date(goal.targetDate)
-    const now = new Date('2026-09-02')
-    const diffMonths = Math.max(
-      1,
+    if (remaining <= 0) return 0
+
+    const deadline = new Date(`${goal.targetDate}T23:59:59`)
+    const now = new Date()
+
+    if (deadline.getTime() <= now.getTime()) {
+      return remaining
+    }
+
+    const months =
       (deadline.getFullYear() - now.getFullYear()) * 12 +
-        (deadline.getMonth() - now.getMonth())
-    )
-    return Math.ceil(remaining / diffMonths)
+      (deadline.getMonth() - now.getMonth()) +
+      (deadline.getDate() >= now.getDate() ? 0 : -1)
+
+    const monthsRemaining = Math.max(1, months)
+
+    return Math.ceil(remaining / monthsRemaining)
   }
+
+  const formatTargetDate = (date: string) => {
+    if (!date) return '—'
+
+    const parsed = new Date(`${date}T12:00:00`)
+    if (Number.isNaN(parsed.getTime())) return date
+
+    return parsed.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
+  // The strategy card is based only on the user's actual goals and profile.
+  const primaryGoal = goals[0] ?? null
+  const primaryGoalMonthlyRequirement = primaryGoal
+    ? calculateMonthlySaving(primaryGoal)
+    : 0
+
+  const displayName = profile.name?.trim() || 'you'
+  const monthlyAllowance = Number(profile.monthlyAllowance) || 0
+
+  const allocationPercent =
+    monthlyAllowance > 0 && primaryGoalMonthlyRequirement > 0
+      ? Math.round((primaryGoalMonthlyRequirement / monthlyAllowance) * 100)
+      : 0
+
+  const strategyTitle = primaryGoal
+    ? primaryGoal.savedAmount >= primaryGoal.targetAmount
+      ? 'Goal fully funded'
+      : `Set aside ${formatMoney(primaryGoalMonthlyRequirement)} / month`
+    : 'Create a goal to get a savings strategy'
+
+  const strategyDescription = primaryGoal
+    ? primaryGoal.savedAmount >= primaryGoal.targetAmount
+      ? `${primaryGoal.title} has reached its target. You can create another goal whenever you are ready.`
+      : monthlyAllowance > 0
+        ? `To reach ${primaryGoal.title} by ${formatTargetDate(primaryGoal.targetDate)}, the remaining ${formatMoney(
+            Math.max(0, primaryGoal.targetAmount - primaryGoal.savedAmount)
+          )} requires about ${formatMoney(primaryGoalMonthlyRequirement)} per month. That is approximately ${allocationPercent}% of your recorded monthly allowance.`
+        : `To reach ${primaryGoal.title} by ${formatTargetDate(primaryGoal.targetDate)}, the remaining ${formatMoney(
+            Math.max(0, primaryGoal.targetAmount - primaryGoal.savedAmount)
+          )} requires about ${formatMoney(primaryGoalMonthlyRequirement)} per month.`
+    : 'Your personalized strategy will appear here after you create a savings goal with a target amount and deadline.'
 
   return (
     <div className="goals-view">
@@ -138,7 +195,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
           <p className="eyebrow">SAVINGS TARGETS & MILESTONES</p>
           <h1>Financial Goals</h1>
           <p className="muted">
-            Track and fund your laptop, semester trips, and safety net with dynamic pacing.
+            Create and fund savings targets with a monthly pace calculated from your actual goal data.
           </p>
         </div>
 
@@ -153,102 +210,139 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
       {/* Goals Grid */}
       <div className="goals-cards-grid">
-        {goals.map((goal) => {
-          const pct = Math.min(
-            100,
-            Math.round((goal.savedAmount / goal.targetAmount) * 100)
-          )
-          const remaining = Math.max(0, goal.targetAmount - goal.savedAmount)
-          const monthlyReq = calculateMonthlySaving(goal)
-
-          return (
-            <div key={goal.id} className="card goal-item-card">
-              <div className="goal-card-header">
-                <div className="goal-title-block">
-                  <div className="badge-icon mint">
-                    <Target size={18} />
-                  </div>
-                  <div>
-                    <span className="goal-category-tag">{goal.category}</span>
-                    <h3>{goal.title}</h3>
-                  </div>
-                </div>
-
-                <div className="goal-header-actions">
-                  <button
-                    type="button"
-                    className="icon-btn-sm"
-                    onClick={() => openEditModal(goal)}
-                    title="Edit goal"
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn-sm danger"
-                    onClick={() => handleDelete(goal.id, goal.title)}
-                    title="Delete goal"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="goal-financials-display">
-                <div className="goal-saved-col">
-                  <strong>{formatMoney(goal.savedAmount)}</strong>
-                  <small>Saved of {formatMoney(goal.targetAmount)}</small>
-                </div>
-                <span className="goal-percent-badge">{pct}%</span>
-              </div>
-
-              <div className="progress" style={{ height: '9px' }}>
-                <span style={{ width: `${pct}%`, background: '#1f9d67' }} />
-              </div>
-
-              <div className="goal-stats-grid">
-                <div className="goal-stat-item">
-                  <span>Remaining</span>
-                  <strong>{formatMoney(remaining)}</strong>
-                </div>
-                <div className="goal-stat-item">
-                  <span>Required / Month</span>
-                  <strong style={{ color: '#1f9d67' }}>{formatMoney(monthlyReq)}</strong>
-                </div>
-                <div className="goal-stat-item">
-                  <span>Target Date</span>
-                  <small>{goal.targetDate}</small>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="primary-btn full"
-                style={{ marginTop: '16px' }}
-                onClick={() => openDepositModal(goal)}
-              >
-                <Plus size={15} /> Add Money to Goal
-              </button>
+        {goals.length === 0 ? (
+          <div className="card goal-empty-state">
+            <div className="badge-icon mint">
+              <Target size={20} />
             </div>
-          )
-        })}
+            <h3>No savings goals yet</h3>
+            <p className="muted">
+              Create your first goal and Finwise will calculate the amount you need to set aside each month.
+            </p>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={openCreateModal}
+            >
+              <Plus size={15} /> Create your first goal
+            </button>
+          </div>
+        ) : (
+          goals.map((goal) => {
+            const pct =
+              goal.targetAmount > 0
+                ? Math.min(
+                    100,
+                    Math.round((goal.savedAmount / goal.targetAmount) * 100)
+                  )
+                : 0
+
+            const remaining = Math.max(0, goal.targetAmount - goal.savedAmount)
+            const monthlyReq = calculateMonthlySaving(goal)
+
+            return (
+              <div key={goal.id} className="card goal-item-card">
+                <div className="goal-card-header">
+                  <div className="goal-title-block">
+                    <div className="badge-icon mint">
+                      <Target size={18} />
+                    </div>
+
+                    <div>
+                      <span className="goal-category-tag">{goal.category}</span>
+                      <h3>{goal.title}</h3>
+                    </div>
+                  </div>
+
+                  <div className="goal-header-actions">
+                    <button
+                      type="button"
+                      className="icon-btn-sm"
+                      onClick={() => openEditModal(goal)}
+                      title="Edit goal"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="icon-btn-sm danger"
+                      onClick={() => handleDelete(goal.id, goal.title)}
+                      title="Delete goal"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="goal-financials-display">
+                  <div className="goal-saved-col">
+                    <strong>{formatMoney(goal.savedAmount)}</strong>
+                    <small>Saved of {formatMoney(goal.targetAmount)}</small>
+                  </div>
+
+                  <span className="goal-percent-badge">{pct}%</span>
+                </div>
+
+                <div className="progress" style={{ height: '9px' }}>
+                  <span
+                    style={{
+                      width: `${pct}%`,
+                      background: '#1f9d67',
+                    }}
+                  />
+                </div>
+
+                <div className="goal-stats-grid">
+                  <div className="goal-stat-item">
+                    <span>Remaining</span>
+                    <strong>{formatMoney(remaining)}</strong>
+                  </div>
+
+                  <div className="goal-stat-item">
+                    <span>Required / Month</span>
+                    <strong style={{ color: '#1f9d67' }}>
+                      {formatMoney(monthlyReq)}
+                    </strong>
+                  </div>
+
+                  <div className="goal-stat-item">
+                    <span>Target Date</span>
+                    <small>{formatTargetDate(goal.targetDate)}</small>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="primary-btn full"
+                  style={{ marginTop: '16px' }}
+                  onClick={() => openDepositModal(goal)}
+                >
+                  <Plus size={15} /> Add Money to Goal
+                </button>
+              </div>
+            )
+          })
+        )}
       </div>
 
-      {/* AI Pace Advisory */}
+      {/* Dynamic AI Pace Advisory */}
       <div className="card big-score" style={{ marginTop: '24px' }}>
         <p className="eyebrow">
-          AI STRATEGY FOR {(profile.name.split(' ')[0] || 'NISHITA').toUpperCase()}
+          {primaryGoal ? `AI STRATEGY FOR ${displayName.toUpperCase()}` : 'AI SAVINGS STRATEGY'}
         </p>
-        <h2>Auto-Allocate ₹2,400 / month</h2>
-        <p>
-          At your current pace of saving ₹3,800/month from allowance, your New M3 MacBook Pro
-          will be fully funded by May 2027 (1 month ahead of schedule).
-        </p>
+
+        <h2>{strategyTitle}</h2>
+
+        <p>{strategyDescription}</p>
       </div>
 
       {/* Create / Edit Goal Modal */}
       {isGoalModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsGoalModalOpen(false)}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setIsGoalModalOpen(false)}
+        >
           <form
             className="modal"
             style={{ maxWidth: '440px' }}
@@ -263,8 +357,12 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
               <X size={18} />
             </button>
 
-            <p className="eyebrow">{editingGoal ? 'EDIT GOAL' : 'NEW SAVINGS GOAL'}</p>
+            <p className="eyebrow">
+              {editingGoal ? 'EDIT GOAL' : 'NEW SAVINGS GOAL'}
+            </p>
+
             <h2>{editingGoal ? 'Modify Target' : 'Create a Student Goal'}</h2>
+
             <p className="muted" style={{ marginBottom: '16px' }}>
               Set a target and deadline. Finwise will automatically compute the monthly saving pace.
             </p>
@@ -275,7 +373,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Sony WH-1000XM5 Headphones"
+                placeholder="e.g. New headphones, trip, course..."
               />
             </label>
 
@@ -289,7 +387,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                   required
                   value={targetAmount}
                   onChange={(e) =>
-                    setTargetAmount(e.target.value ? Number(e.target.value) : '')
+                    setTargetAmount(
+                      e.target.value ? Number(e.target.value) : ''
+                    )
                   }
                   placeholder="e.g. 25000"
                 />
@@ -328,7 +428,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                   min="0"
                   value={initialDeposit}
                   onChange={(e) =>
-                    setInitialDeposit(e.target.value ? Number(e.target.value) : '')
+                    setInitialDeposit(
+                      e.target.value ? Number(e.target.value) : ''
+                    )
                   }
                   placeholder="e.g. 1000"
                 />
@@ -343,6 +445,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
               >
                 Cancel
               </button>
+
               <button type="submit" className="primary-btn">
                 <Save size={15} /> Save Goal
               </button>
@@ -372,7 +475,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
             </button>
 
             <p className="eyebrow">FUND GOAL</p>
+
             <h2>Deposit into {activeGoalForDeposit.title}</h2>
+
             <p className="muted" style={{ marginBottom: '14px' }}>
               Transfers funds from your liquid balance ({formatMoney(currentBalance)}) into this target.
             </p>
@@ -388,7 +493,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                 autoFocus
                 value={depositAmount}
                 onChange={(e) =>
-                  setDepositAmount(e.target.value ? Number(e.target.value) : '')
+                  setDepositAmount(
+                    e.target.value ? Number(e.target.value) : ''
+                  )
                 }
                 placeholder="e.g. 500"
               />
@@ -415,6 +522,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
               >
                 Cancel
               </button>
+
               <button type="submit" className="primary-btn">
                 <CheckCircle2 size={15} /> Confirm Deposit
               </button>

@@ -5,7 +5,6 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
-  Sparkles,
   X,
   Save,
 } from 'lucide-react'
@@ -142,42 +141,6 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
           </div>
         </div>
 
-        <div className="card insight-list">
-          <p className="eyebrow">AI BUDGET GUARDRAILS</p>
-          <div className="insight-row">
-            <span className="badge-icon mint">
-              <Sparkles size={16} />
-            </span>
-            <strong>
-              Mess vs Delivery Rule
-              <small>
-                Limiting Swiggy orders to weekends saves an estimated ₹1,200/month.
-              </small>
-            </strong>
-          </div>
-          <div className="insight-row">
-            <span className="badge-icon lavender">
-              <CheckCircle2 size={16} />
-            </span>
-            <strong>
-              Automatic Alert Triggers
-              <small>
-                Finwise alerts you immediately when any category reaches 85% utilization.
-              </small>
-            </strong>
-          </div>
-          <div className="insight-row">
-            <span className="badge-icon peach">
-              <AlertTriangle size={16} />
-            </span>
-            <strong>
-              Dynamic Recalculation
-              <small>
-                Every scanned receipt or edited transaction recalculates all bars in real time.
-              </small>
-            </strong>
-          </div>
-        </div>
       </div>
 
       {/* Category Budgets Grid */}

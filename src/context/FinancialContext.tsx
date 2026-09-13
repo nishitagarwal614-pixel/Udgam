@@ -79,15 +79,15 @@ interface FinancialContextType {
   formatMoney: (amount: number) => string
 }
 
-const STORAGE_KEY = 'finwise_student_data_v2'
+const STORAGE_KEY = 'finwise_student_data_v3'
 
 const initialProfile: UserProfile = {
-  name: 'Nishita',
-  college: 'IIT Delhi · Computer Science',
-  plan: 'Student Pro',
-  avatarInitials: 'N',
-  monthlyAllowance: 15000,
-  streakDays: 5,
+  name: 'Student',
+  college: '',
+  plan: 'Student',
+  avatarInitials: 'S',
+  monthlyAllowance: 0,
+  streakDays: 0,
   currency: '₹',
   theme: 'light',
   aiPersonality: 'Balanced',
@@ -97,240 +97,20 @@ const initialProfile: UserProfile = {
 
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: 'tx-1',
-    merchant: 'Swiggy',
-    category: 'Food',
-    date: '2026-09-02',
-    displayDate: 'Today, 12:40 PM',
-    timestamp: new Date('2026-09-02T12:40:00').getTime(),
-    amount: 340,
-    type: 'expense',
-    paymentMethod: 'UPI',
-    notes: 'Campus mess lunch supplement',
-    items: [
-      { name: 'Paneer Butter Masala', price: 220, quantity: 1 },
-      { name: 'Butter Naan x2', price: 120, quantity: 2 },
-    ],
-  },
-  {
-    id: 'tx-2',
-    merchant: 'Monthly Stipend & Pocket Money',
-    category: 'Income',
-    date: '2026-09-01',
-    displayDate: 'Yesterday, 9:00 AM',
-    timestamp: new Date('2026-09-01T09:00:00').getTime(),
-    amount: 15000,
-    type: 'income',
-    paymentMethod: 'NetBanking',
-    notes: 'September pocket allowance & lab assistant stipend',
-  },
-  {
-    id: 'tx-3',
-    merchant: 'Metro Card Recharge',
-    category: 'Travel',
-    date: '2026-09-01',
-    displayDate: 'Yesterday, 5:15 PM',
-    timestamp: new Date('2026-09-01T17:15:00').getTime(),
-    amount: 220,
-    type: 'expense',
-    paymentMethod: 'UPI',
-    notes: 'Yellow line transit to university',
-  },
-  {
-    id: 'tx-4',
-    merchant: 'Netflix Student',
-    category: 'Subscriptions',
-    date: '2026-08-28',
-    displayDate: '28 Aug 2026',
-    timestamp: new Date('2026-08-28T10:00:00').getTime(),
-    amount: 199,
-    type: 'expense',
-    paymentMethod: 'UPI',
-    notes: 'Monthly standard tier split with roomie',
-  },
-  {
-    id: 'tx-5',
-    merchant: 'Campus Bookstore',
-    category: 'Education',
-    date: '2026-08-27',
-    displayDate: '27 Aug 2026',
-    timestamp: new Date('2026-08-27T16:20:00').getTime(),
-    amount: 780,
-    type: 'expense',
-    paymentMethod: 'Card',
-    notes: 'Algorithms textbook & notebook refills',
-    items: [
-      { name: 'Introduction to Algorithms (Paperback)', price: 650 },
-      { name: 'Classmate Spiral Notebooks (Pack of 2)', price: 130 },
-    ],
-  },
-  {
-    id: 'tx-6',
-    merchant: 'Subway',
-    category: 'Food',
-    date: '2026-08-25',
-    displayDate: '25 Aug 2026',
-    timestamp: new Date('2026-08-25T13:10:00').getTime(),
-    amount: 280,
-    type: 'expense',
-    paymentMethod: 'UPI',
-    notes: 'Lunch after lab test',
-  },
-  {
-    id: 'tx-7',
-    merchant: 'Hostel Maintenance & Mess Share',
-    category: 'Bills',
-    date: '2026-08-24',
-    displayDate: '24 Aug 2026',
-    timestamp: new Date('2026-08-24T11:00:00').getTime(),
-    amount: 2500,
-    type: 'expense',
-    paymentMethod: 'NetBanking',
-    notes: 'Hostel committee mess dues',
-  },
-  {
-    id: 'tx-8',
-    merchant: 'Amazon India',
-    category: 'Shopping',
-    date: '2026-08-22',
-    displayDate: '22 Aug 2026',
-    timestamp: new Date('2026-08-22T19:45:00').getTime(),
-    amount: 899,
-    type: 'expense',
-    paymentMethod: 'Card',
-    notes: 'Ergonomic desk lamp for hostel room',
-  },
-  {
-    id: 'tx-9',
-    merchant: 'Tech Fest Hackathon Fee',
-    category: 'Entertainment',
-    date: '2026-08-20',
-    displayDate: '20 Aug 2026',
-    timestamp: new Date('2026-08-20T14:30:00').getTime(),
-    amount: 450,
-    type: 'expense',
-    paymentMethod: 'UPI',
-    notes: 'National student hackathon team registration',
-  },
-  {
-    id: 'tx-10',
-    merchant: 'Merit Scholarship Prize',
-    category: 'Income',
-    date: '2026-08-15',
-    displayDate: '15 Aug 2026',
-    timestamp: new Date('2026-08-15T10:00:00').getTime(),
-    amount: 5000,
-    type: 'income',
-    paymentMethod: 'NetBanking',
-    notes: 'Semester academic excellence grant',
-  },
-]
+const initialTransactions: Transaction[] = []
 
-const initialBudgets: Budget[] = [
-  { id: 'b-1', category: 'Food', limit: 4000, period: 'monthly', color: '#1f9d67' },
-  { id: 'b-2', category: 'Travel', limit: 2000, period: 'monthly', color: '#5385d5' },
-  { id: 'b-3', category: 'Education', limit: 2500, period: 'monthly', color: '#8669c7' },
-  { id: 'b-4', category: 'Shopping', limit: 2000, period: 'monthly', color: '#c7764e' },
-  { id: 'b-5', category: 'Subscriptions', limit: 800, period: 'monthly', color: '#279265' },
-  { id: 'b-6', category: 'Entertainment', limit: 1500, period: 'monthly', color: '#d97706' },
-]
+const initialBudgets: Budget[] = []
 
-const initialGoals: Goal[] = [
-  {
-    id: 'g-1',
-    title: 'New M3 MacBook Pro for Coding',
-    targetAmount: 60000,
-    savedAmount: 18400,
-    category: 'Gadget',
-    targetDate: '2027-06-30',
-    color: 'mint',
-    icon: 'Laptop',
-  },
-  {
-    id: 'g-2',
-    title: 'Semester End Goa Roadtrip',
-    targetAmount: 12000,
-    savedAmount: 4500,
-    category: 'Travel',
-    targetDate: '2026-12-25',
-    color: 'peach',
-    icon: 'Palmtree',
-  },
-  {
-    id: 'g-3',
-    title: 'Emergency Student Safety Net',
-    targetAmount: 10000,
-    savedAmount: 6000,
-    category: 'Security',
-    targetDate: '2026-11-30',
-    color: 'lavender',
-    icon: 'Shield',
-  },
-]
+const initialGoals: Goal[] = []
 
-const initialSubscriptions: Subscription[] = [
-  {
-    id: 'sub-1',
-    name: 'Netflix Student Tier',
-    amount: 199,
-    billingCycle: 'monthly',
-    nextBillingDate: '2026-09-28',
-    category: 'Subscriptions',
-  },
-  {
-    id: 'sub-2',
-    name: 'Spotify Premium Student',
-    amount: 59,
-    billingCycle: 'monthly',
-    nextBillingDate: '2026-09-15',
-    category: 'Subscriptions',
-  },
-  {
-    id: 'sub-3',
-    name: 'Campus High-Speed Wi-Fi Boost',
-    amount: 150,
-    billingCycle: 'monthly',
-    nextBillingDate: '2026-09-10',
-    category: 'Bills',
-  },
-]
+const initialSubscriptions: Subscription[] = []
 
-const initialAlerts: Alert[] = [
-  {
-    id: 'alt-1',
-    type: 'warning',
-    title: 'Food budget approaching limit',
-    message: 'You have spent 81% of your ₹4,000 monthly food allowance with 28 days to go.',
-    date: '2 hours ago',
-    read: false,
-    actionView: 'Budgets',
-  },
-  {
-    id: 'alt-2',
-    type: 'info',
-    title: 'Spotify Student renews soon',
-    message: '₹59 will be debited via UPI auto-pay on 15 September.',
-    date: '1 day ago',
-    read: false,
-    actionView: 'Overview',
-  },
-  {
-    id: 'alt-3',
-    type: 'success',
-    title: 'Goal milestone achieved!',
-    message: 'You reached 30% of your New Laptop savings goal. Keep it up!',
-    date: '3 days ago',
-    read: true,
-    actionView: 'Goals',
-  },
-]
+const initialAlerts: Alert[] = []
 
 const FinancialContext = createContext<FinancialContextType | undefined>(undefined)
 
 export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage or initial seed
+  // Load state from localStorage
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     try {
       const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`)
@@ -497,8 +277,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     })
 
-    // Base balance account started with + incomes - expenses
-    const startingBankBalance = 3200 // baseline student starting account cushion
+    // No fictional starting balance: balance comes only from the user's records.
+    const startingBankBalance = 0
     const balance = startingBankBalance + inc - exp
 
     return {
@@ -529,35 +309,42 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Safe to Spend calculation
   const safeToSpend = useMemo<SafeToSpendBreakdown>(() => {
-    const daysInMonth = 30
-    const todayDate = 2 // 02 September
+    const now = new Date()
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const todayDate = now.getDate()
     const daysRemaining = Math.max(1, daysInMonth - todayDate)
 
     const upcomingBills = subscriptions.reduce((sum, sub) => sum + sub.amount, 0)
-    // Allocate 15% of monthly allowance to goals as buffer
-    const monthlySavingsBuffer = Math.min(2500, Math.floor(profile.monthlyAllowance * 0.15))
+    // Use only the user's configured allowance; no fictional savings target is added.
+    const monthlySavingsBuffer = Math.min(
+      Math.max(0, currentBalance),
+      Math.floor(Math.max(0, profile.monthlyAllowance) * 0.15),
+    )
 
     const availablePool = Math.max(0, currentBalance - upcomingBills - monthlySavingsBuffer)
     const dailyAllowance = Math.max(0, Math.floor(availablePool / daysRemaining))
-    const dailyBurnRate = totalExpenses > 0 ? Math.round(totalExpenses / Math.max(1, todayDate)) : 200
+    const dailyBurnRate =
+      totalExpenses > 0
+        ? Math.round(totalExpenses / Math.max(1, todayDate))
+        : 0
 
     return {
-      safeDaily: dailyAllowance > 0 ? dailyAllowance : 150,
+      safeDaily: dailyAllowance,
       currentBalance,
       upcomingBillsTotal: upcomingBills,
       savingsBufferTotal: monthlySavingsBuffer,
       availablePool,
       daysRemainingInMonth: daysRemaining,
       dailyBurnRate,
-      explanation: `Calculated from your ₹${currentBalance.toLocaleString('en-IN')} available balance, minus ₹${upcomingBills} upcoming recurring bills and ₹${monthlySavingsBuffer} savings buffer, spread across ${daysRemaining} remaining days in September.`,
+      explanation: `Calculated from your ₹${currentBalance.toLocaleString('en-IN')} available balance, minus ₹${upcomingBills} upcoming recurring bills and ₹${monthlySavingsBuffer} savings buffer, spread across ${daysRemaining} remaining days in the current month.`,
     }
   }, [currentBalance, subscriptions, profile.monthlyAllowance, totalExpenses])
 
   // Health score (0 - 100)
   const healthScore = useMemo<HealthScoreBreakdown>(() => {
     // 1. Savings rate (max 25)
-    const savingsRatio = totalIncome > 0 ? (totalIncome - totalExpenses) / totalIncome : 0.2
-    const savingsRateScore = Math.min(25, Math.max(5, Math.round(savingsRatio * 100 * 0.6)))
+    const savingsRatio = totalIncome > 0 ? (totalIncome - totalExpenses) / totalIncome : 0
+    const savingsRateScore = totalIncome > 0 ? Math.min(25, Math.max(0, Math.round(savingsRatio * 100 * 0.6))) : 0
 
     // 2. Budget discipline (max 30)
     let budgetsChecked = 0
@@ -568,38 +355,46 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (spent <= b.limit) budgetsUnder++
     })
     const budgetDisciplineScore =
-      budgetsChecked > 0 ? Math.round((budgetsUnder / budgetsChecked) * 30) : 25
+      budgetsChecked > 0 ? Math.round((budgetsUnder / budgetsChecked) * 30) : 0
 
     // 3. Runway score (max 25)
-    const dailySpend = totalExpenses > 0 ? totalExpenses / 10 : 300
-    const runwayDays = dailySpend > 0 ? Math.floor(currentBalance / dailySpend) : 30
-    const runwayScore = Math.min(25, Math.max(5, Math.round((runwayDays / 30) * 25)))
+    const dailySpend = totalExpenses > 0 ? totalExpenses / 10 : 0
+    const runwayDays = dailySpend > 0 ? Math.floor(currentBalance / dailySpend) : 0
+    const runwayScore = dailySpend > 0 ? Math.min(25, Math.max(0, Math.round((runwayDays / 30) * 25))) : 0
 
     // 4. Goal pace score (max 20)
     const totalGoalTarget = goals.reduce((s, g) => s + g.targetAmount, 0)
     const totalGoalSaved = goals.reduce((s, g) => s + g.savedAmount, 0)
-    const goalRatio = totalGoalTarget > 0 ? totalGoalSaved / totalGoalTarget : 0.3
-    const goalPaceScore = Math.min(20, Math.max(5, Math.round(goalRatio * 40)))
+    const goalRatio = totalGoalTarget > 0 ? totalGoalSaved / totalGoalTarget : 0
+    const goalPaceScore = totalGoalTarget > 0 ? Math.min(20, Math.max(0, Math.round(goalRatio * 40))) : 0
 
     const overall = Math.min(
       100,
-      Math.max(10, savingsRateScore + budgetDisciplineScore + runwayScore + goalPaceScore)
+      savingsRateScore + budgetDisciplineScore + runwayScore + goalPaceScore
     )
 
     const strengths = []
     const improvements = []
 
-    if (savingsRateScore >= 18) strengths.push('Strong student savings rate above 20%')
-    else improvements.push('Savings margin is tight; trim non-essential dining')
+    if (totalIncome > 0) {
+      if (savingsRateScore >= 18) strengths.push('Strong savings rate')
+      else improvements.push('Savings margin is tight; review non-essential spending')
+    }
 
-    if (budgetDisciplineScore >= 24) strengths.push('High adherence to category limits')
-    else improvements.push('Food or shopping is straining planned category allocations')
+    if (budgetsChecked > 0) {
+      if (budgetDisciplineScore >= 24) strengths.push('High adherence to category limits')
+      else improvements.push('One or more recorded categories are above budget')
+    }
 
-    if (runwayScore >= 18) strengths.push(`Health buffer of ~${runwayDays} days runway`)
-    else improvements.push('Runway below 15 days; prioritize emergency reserves')
+    if (dailySpend > 0) {
+      if (runwayScore >= 18) strengths.push(`Health buffer of ~${runwayDays} days runway`)
+      else improvements.push('Runway is below 15 days; prioritize reserves')
+    }
 
-    if (goalPaceScore >= 12) strengths.push('Consistent deposits into New Laptop goal')
-    else improvements.push('Set up small ₹200 weekly micro-deposits for goals')
+    if (totalGoalTarget > 0) {
+      if (goalPaceScore >= 12) strengths.push('Good progress toward your savings goals')
+      else improvements.push('Consider regular contributions to your active goals')
+    }
 
     return {
       overall,
@@ -614,37 +409,37 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Predicted month-end balance
   const predictedMonthEnd = useMemo(() => {
-    const daysInMonth = 30
-    const daysLeft = daysInMonth - 2
-    const dailyBurn = safeToSpend.safeDaily
+    const now = new Date()
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    const daysLeft = Math.max(0, daysInMonth - now.getDate())
+    const dailyBurn = safeToSpend.dailyBurnRate
     const predictedSpendRemaining = dailyBurn * daysLeft
     const upcomingBills = safeToSpend.upcomingBillsTotal
     const projected = currentBalance - predictedSpendRemaining - upcomingBills
-    return Math.max(800, projected)
+    return Math.max(0, projected)
   }, [currentBalance, safeToSpend])
 
   // Money runway in days
   const moneyRunwayDays = useMemo(() => {
-    const avgDaily = totalExpenses > 0 ? Math.max(100, Math.round(totalExpenses / 12)) : 250
-    return Math.max(1, Math.floor(currentBalance / avgDaily))
+    const avgDaily = totalExpenses > 0 ? Math.max(1, Math.round(totalExpenses / 12)) : 0
+    return avgDaily > 0 ? Math.floor(currentBalance / avgDaily) : 0
   }, [currentBalance, totalExpenses])
 
   // Spending personality
   const spendingPersonality = useMemo(() => {
-    const foodRatio = totalExpenses > 0 ? (categoryTotals.Food || 0) / totalExpenses : 0.3
-    const shoppingRatio = totalExpenses > 0 ? (categoryTotals.Shopping || 0) / totalExpenses : 0.1
-    const savingsRatio = totalIncome > 0 ? netSavings / totalIncome : 0.2
+    const foodRatio = totalExpenses > 0 ? (categoryTotals.Food || 0) / totalExpenses : 0
+    const savingsRatio = totalIncome > 0 ? netSavings / totalIncome : 0
 
-    if (foodRatio > 0.4) {
+    if (totalExpenses === 0 && totalIncome === 0) {
       return {
-        title: 'Canteen Connoisseur',
-        badge: 'Foodie Scholar',
+        title: 'Getting Started',
+        badge: 'New Dashboard',
         description:
-          'A significant portion of your discretionary pocket money flows into food delivery and canteen treats. You prioritize socializing and good meals.',
-        topTrait: 'High Food & Dining Velocity',
-        tip: 'Batch ordering with hostel mates or cooking twice a week can unlock ₹1,400 monthly savings.',
+          'Add your income and expenses to build a personalized picture of your spending habits.',
+        topTrait: 'No spending pattern yet',
+        tip: 'Start by recording your latest income or expense.',
       }
-    } else if (shoppingRatio > 0.3) {
+    } else if (foodRatio > 0.4) {
       return {
         title: 'Tech & Gear Enthusiast',
         badge: 'Impulse Shopper',
@@ -669,7 +464,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         description:
           'You balance campus life, books, meals, and fun well. Your spending rises near exams and weekends but returns to a stable mean.',
         topTrait: 'Stable day-to-day rhythm',
-        tip: 'Automate ₹500 right when pocket money arrives to grow your laptop fund effortlessly.',
+        tip: 'Keep logging transactions regularly to make your spending pattern more accurate.',
       }
     }
   }, [totalExpenses, categoryTotals, totalIncome, netSavings])
@@ -678,15 +473,18 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const aiMonthlyStory = useMemo(() => {
     const topCatName = topSpendingCategory.category
     const topCatSpent = formatMoney(topSpendingCategory.amount)
-    return `In September, you took in ${formatMoney(totalIncome)} across pocket allowance and merit grants, while spending ${formatMoney(totalExpenses)}. ${topCatName} was your top cash outflow at ${topCatSpent} (${topSpendingCategory.percentage}% of expenses). You maintained ${formatMoney(netSavings)} in net surplus, giving you an estimated runway of ${moneyRunwayDays} days. Keep your daily spend under ${formatMoney(safeToSpend.safeDaily)} to cross month-end with a strong ₹${predictedMonthEnd.toLocaleString('en-IN')} buffer.`
-  }, [
+    const monthName = new Intl.DateTimeFormat('en-IN', { month: 'long' }).format(new Date())
+    if (totalIncome === 0 && totalExpenses === 0) {
+      return 'Add your income and expenses to see your personalized monthly financial story.'
+    }
+    return `In ${monthName}, you recorded ${formatMoney(totalIncome)} in income and ${formatMoney(totalExpenses)} in expenses. ${topCatName} was your top spending category at ${topCatSpent} (${topSpendingCategory.percentage}% of expenses). Your current net savings are ${formatMoney(netSavings)}, with an estimated runway of ${moneyRunwayDays} days. Your current daily safe-to-spend amount is ${formatMoney(safeToSpend.safeDaily)}.`
+    }, [
     topSpendingCategory,
     totalIncome,
     totalExpenses,
     netSavings,
     moneyRunwayDays,
     safeToSpend.safeDaily,
-    predictedMonthEnd,
     formatMoney,
   ])
 
@@ -938,17 +736,17 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.removeItem(`${STORAGE_KEY}_alerts`)
     localStorage.removeItem(`${STORAGE_KEY}_profile`)
 
-    setTransactions(initialTransactions)
-    setBudgets(initialBudgets)
-    setGoals(initialGoals)
-    setAlerts(initialAlerts)
+    setTransactions([])
+    setBudgets([])
+    setGoals([])
+    setAlerts([])
     setProfile(initialProfile)
   }
 
   const generatePersonalizedPlan = (answers: OnboardingAnswers) => {
     // 1. Update Profile
-    const studentName = answers.name.trim() || 'Nishita'
-    const studentCollege = answers.college.trim() || 'IIT Delhi · Computer Science'
+    const studentName = answers.name.trim() || 'Student'
+    const studentCollege = answers.college.trim()
     const updatedProfile: UserProfile = {
       ...profile,
       name: studentName,
@@ -961,7 +759,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           .map((n) => n[0])
           .join('')
           .toUpperCase()
-          .slice(0, 2) || 'AS',
+          .slice(0, 2) || 'S',
     }
     setProfile(updatedProfile)
 
@@ -982,83 +780,26 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     ]
     setBudgets(customBudgets)
 
-    // 3. Set Primary Goal
-    const customGoals: Goal[] = [
-      {
-        id: 'g-1',
-        title: answers.goalTitle || 'New M3 MacBook Pro',
-        targetAmount: answers.goalTarget || 55000,
-        savedAmount: Math.floor((answers.goalTarget || 55000) * 0.25),
-        category: 'Gadget',
-        targetDate: '2027-06-30',
-        color: 'mint',
-        icon: 'Target',
-      },
-      {
-        id: 'g-2',
-        title: 'Emergency Student Safety Buffer',
-        targetAmount: 10000,
-        savedAmount: 4500,
-        category: 'Security',
-        targetDate: '2026-12-31',
-        color: 'lavender',
-        icon: 'Shield',
-      },
-    ]
+    // 3. Create only goals explicitly entered during onboarding.
+    const customGoals: Goal[] = answers.goalTitle.trim() && answers.goalTarget > 0
+      ? [
+          {
+            id: 'g-1',
+            title: answers.goalTitle.trim(),
+            targetAmount: answers.goalTarget,
+            savedAmount: 0,
+            category: 'Gadget',
+            targetDate: '2027-06-30',
+            color: 'mint',
+            icon: 'Target',
+          },
+        ]
+      : []
     setGoals(customGoals)
 
-    // 4. Seed initial realistic transactions reflecting their allowance & living situation
-    const seededTransactions: Transaction[] = [
-      {
-        id: `tx-init-inflow`,
-        merchant: 'Monthly Pocket Money & Allowance',
-        category: 'Income',
-        date: '2026-09-01',
-        displayDate: '01 Sep',
-        timestamp: new Date('2026-09-01T09:00:00').getTime(),
-        amount: answers.monthlyAllowance,
-        type: 'income',
-        paymentMethod: 'NetBanking',
-        notes: `Allowance allocated for ${answers.livingSituation === 'hostel' ? 'Hostel campus life' : answers.livingSituation === 'flat' ? 'Rented flat living' : 'Day scholar expenses'}`,
-      },
-      {
-        id: `tx-init-mess`,
-        merchant: answers.livingSituation === 'hostel' ? 'Hostel Mess & Room Dues' : answers.livingSituation === 'flat' ? 'Flat Rent & Grocery Share' : 'Family Living Contribution',
-        category: 'Bills',
-        date: '2026-09-01',
-        displayDate: '01 Sep',
-        timestamp: new Date('2026-09-01T10:00:00').getTime(),
-        amount: answers.rentOrMess,
-        type: 'expense',
-        paymentMethod: 'UPI',
-        notes: 'Monthly fixed accommodation / mess share',
-      },
-      {
-        id: `tx-init-food`,
-        merchant: 'Swiggy / Campus Canteen Meal',
-        category: 'Food',
-        date: '2026-09-02',
-        displayDate: 'Today',
-        timestamp: new Date('2026-09-02T13:00:00').getTime(),
-        amount: 320,
-        type: 'expense',
-        paymentMethod: 'UPI',
-        notes: 'Campus mess supplement & cold drink',
-      },
-      {
-        id: `tx-init-transit`,
-        merchant: 'Metro / Campus Transit Recharge',
-        category: 'Travel',
-        date: '2026-09-02',
-        displayDate: 'Today',
-        timestamp: new Date('2026-09-02T16:30:00').getTime(),
-        amount: 200,
-        type: 'expense',
-        paymentMethod: 'UPI',
-        notes: 'Commute smart card top-up',
-      },
-    ]
-    setTransactions(seededTransactions)
+    // 4. Do not seed fictional transactions.
+    // Transactions are added only when the user records them.
+    setTransactions([])
 
     // 5. Add welcome alert
     const welcomeAlert: Alert = {
@@ -1084,7 +825,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const balanceAfter = currentBalance - amount
     const budget = budgets.find((b) => b.category === category)
     const currentCategorySpent = categoryTotals[category] || 0
-    const categoryLimit = budget ? budget.limit : 3000
+    const categoryLimit = budget ? budget.limit : Number.POSITIVE_INFINITY
     const wouldExceedBudget = currentCategorySpent + amount > categoryLimit
     const remainingMonthEndBefore = predictedMonthEnd
     const remainingMonthEndAfter = Math.max(0, predictedMonthEnd - amount)
@@ -1112,8 +853,8 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       verdict === 'NOT RECOMMENDED'
         ? 'Severely threatens current savings goals.'
         : verdict === 'CAUTION'
-        ? 'May delay your New Laptop goal target by ~2 to 3 weeks.'
-        : 'Zero delay to your active savings goals.'
+        ? 'May delay one or more of your current savings goals.'
+        : 'No immediate delay to your active savings goals.'
 
     const monthEndImpact = `Projected month-end reserve shifts from ${formatMoney(remainingMonthEndBefore)} to ${formatMoney(remainingMonthEndAfter)}.`
 
@@ -1128,68 +869,72 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }
 
-  // Intelligent Contextual AI Coach with Budget Engine & Optional Gemini LLM
-  const askAiCoach = async (query: string): Promise<AiCoachResponse> => {
-    const advisorContext = {
-      profile,
-      budgets,
-      categoryTotals,
-      totalIncome,
-      totalExpenses,
-      currentBalance,
-      safeToSpend,
-      healthScore,
-      predictedMonthEnd,
-      moneyRunwayDays,
-      topSpendingCategory,
-      goals,
-      formatMoney,
-      transactions,
-      subscriptions,
-      evaluateAffordability,
+  // Intelligent Contextual AI Coach
+  const askAiCoach = async (query: string): Promise<string> => {
+    // Simulate brief thinking time
+    await new Promise((resolve) => setTimeout(resolve, 450))
+
+    const q = query.toLowerCase()
+
+    if (q.includes('where') && (q.includes('money') || q.includes('go') || q.includes('spend'))) {
+      return `Looking at your actual records: you spent a total of ${formatMoney(totalExpenses)}. Your #1 expense category is **${topSpendingCategory.category}** at ${formatMoney(topSpendingCategory.amount)} (${topSpendingCategory.percentage}% of all expenses). The categories shown here come only from transactions you recorded.`
     }
 
-    // Check if user has configured an optional Gemini API key for live generative AI
-    const geminiKey =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('finwise_gemini_api_key')
-        : null
-    if (geminiKey && geminiKey.trim().length > 10) {
-      try {
-        const geminiResult = await callGeminiAdvisor(query, advisorContext, geminiKey.trim())
-        if (geminiResult && geminiResult.text) {
-          // If the query was to set or update a budget, also check and execute local action
-          const localActionCheck = processBudgetAdvisorQuery(query, advisorContext)
-          if (localActionCheck.budgetActionToExecute) {
-            const { category, limit, period } = localActionCheck.budgetActionToExecute
-            setCategoryBudget(category, limit, period)
-            return {
-              text: geminiResult.text,
-              actionData: localActionCheck.actionData,
-            }
-          }
-          return {
-            text: geminiResult.text,
-          }
-        }
-      } catch (err) {
-        console.warn('Gemini API call failed, falling back to local advisor:', err)
+    if (q.includes('food')) {
+      const foodSpent = categoryTotals.Food || 0
+      const foodBudget = budgets.find((b) => b.category === 'Food')?.limit
+      if (!foodBudget) {
+        return `You have recorded ${formatMoney(foodSpent)} in Food spending. Add a Food budget to compare your spending against a planned limit.`
       }
+      const now = new Date()
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+      const daysLeft = Math.max(1, daysInMonth - now.getDate())
+      const pct = Math.round((foodSpent / foodBudget) * 100)
+      const remaining = Math.max(0, foodBudget - foodSpent)
+      return `You have spent **${formatMoney(foodSpent)}** on Food out of your ${formatMoney(foodBudget)} budget (${pct}% used). With ${daysLeft} days left in the month, that leaves about ${formatMoney(Math.floor(remaining / daysLeft))}/day within the remaining Food budget.`
     }
 
-    // Local deterministic engine (instant, comprehensive, zero failure)
-    await new Promise((resolve) => setTimeout(resolve, 350))
-    const result = processBudgetAdvisorQuery(query, advisorContext)
-
-    if (result.budgetActionToExecute) {
-      const { category, limit, period } = result.budgetActionToExecute
-      setCategoryBudget(category, limit, period)
+    if (q.includes('can i spend') || q.includes('spend today') || q.includes('500')) {
+      const safe = safeToSpend.safeDaily
+      if (q.includes('500')) {
+        return `Your calculated safe limit for today is **${formatMoney(safe)}**. Spending ₹500 today is **feasible but slightly above pace** by ₹${500 - safe}. If you spend ₹500 today, compensate tomorrow by keeping under ₹${Math.max(100, safe - (500 - safe))}.`
+      }
+      return `Your **Safe to Spend today is ${formatMoney(safe)}**. This preserves your ₹${safeToSpend.upcomingBillsTotal} upcoming bills and your monthly goal reserves across the remaining ${safeToSpend.daysRemainingInMonth} days of the current month.`
     }
 
-    return {
-      text: result.text,
-      actionData: result.actionData,
+    if (q.includes('how much can i save') || q.includes('save this month')) {
+      return `Based on your ${formatMoney(totalIncome)} income and normal spending trajectory, you are projected to save **${formatMoney(predictedMonthEnd)}** this month. If you reduce your highest-spending category, your projected savings can improve further.`
     }
+
+    if (q.includes('cut') || q.includes('save 2000') || q.includes('2,000') || q.includes('reduce')) {
+      return `To reduce spending, start with your highest-spending categories shown in the dashboard. Set a budget for those categories and compare your actual transactions against it each week.`
+    }
+
+    if (q.includes('score') || q.includes('health')) {
+      return `Your Financial Health Score is **${healthScore.overall}/100**. Here is why:\n- Budget Discipline: **${healthScore.budgetDisciplineScore}/30** (based on your recorded budgets)\n- Savings Rate: **${healthScore.savingsRateScore}/25** (based on your recorded income and expenses)\n- Runway Buffer: **${healthScore.runwayScore}/25** (~${moneyRunwayDays} days of living expenses)\n- Goal Progress: **${healthScore.goalPaceScore}/20** (based on your active goals)\nTo improve your score, keep your recorded category spending within your budgets and build savings consistently.`
+    }
+
+    if (q.includes('end of the month') || q.includes('month end') || q.includes('projected') || q.includes('balance')) {
+      return `Your projected end-of-month balance is **${formatMoney(predictedMonthEnd)}**. This estimate uses your recorded spending pace and currently configured recurring bills.`
+    }
+
+    if (q.includes('laptop') || q.includes('goal') || q.includes('save')) {
+      const goal = goals[0]
+      if (!goal) {
+        return 'You do not have an active savings goal yet. Add a goal to start tracking your progress.'
+      }
+      const remaining = Math.max(0, goal.targetAmount - goal.savedAmount)
+      const percent = goal.targetAmount > 0
+        ? Math.round((goal.savedAmount / goal.targetAmount) * 100)
+        : 0
+      return `You have saved **${formatMoney(goal.savedAmount)}** towards **${goal.title}** (${percent}% complete). Remaining: ${formatMoney(remaining)}.`
+    }
+
+    // Default intelligent student finance assistant reply
+    if (transactions.length === 0 && goals.length === 0 && budgets.length === 0) {
+      return 'Your dashboard is ready. Add your income, expenses, budgets, or goals and I will use those records to answer your questions.'
+    }
+    return `Based on your current records: you have ${formatMoney(currentBalance)} in liquid balance, your safe daily spend is ${formatMoney(safeToSpend.safeDaily)}, and your financial health score is ${healthScore.overall}/100. Ask about your budgets, transactions, goals, or an upcoming purchase.`
   }
 
   return (

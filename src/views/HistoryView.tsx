@@ -1,15 +1,15 @@
-import React, { useState, useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
-  History,
-  Calendar,
+  Activity,
   BarChart3,
-  List,
-  Search,
-  Plus,
-  Filter,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Download,
-  CreditCard,
-  Layers,
+  Filter,
+  List,
+  Plus,
+  Search,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 import type { Transaction } from '../types'
@@ -18,7 +18,89 @@ interface HistoryViewProps {
   onOpenAddExpense: () => void
   onOpenScanner: () => void
   onSelectTransaction: (tx: Transaction) => void
-  onSuccessToast: (msg: string) => void
+  onSuccessToast: (
+    text: string,
+    type?: 'success' | 'error' | 'info'
+  ) => void
+}
+
+type HistoryTab = 'timeline' | 'calendar' | 'analytics'
+type TypeFilter = 'all' | 'income' | 'expense'
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+const toDateKey = (date: Date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+// Important: never use new Date('YYYY-MM-DD') for calendar comparisons.
+// That parses as UTC and can shift the displayed day in some timezones.
+const parseDateKey = (value: string) => {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+const formatMonth = (date: Date) =>
+  new Intl.DateTimeFormat('en-IN', {
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+
+const formatLongDate = (date: Date) =>
+  new Intl.DateTimeFormat('en-IN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+
+const downloadCsv = (transactions: Transaction[]) => {
+  const headers = [
+    'Date',
+    'Merchant',
+    'Category',
+    'Type',
+    'Amount',
+    'Payment Method',
+    'Notes',
+  ]
+
+  const escapeCsv = (value: unknown) => {
+    const text = String(value ?? '')
+    return `"${text.replace(/"/g, '""')}"`
+  }
+
+  const rows = transactions.map((tx) =>
+    [
+      tx.date,
+      tx.merchant,
+      tx.category,
+      tx.type,
+      tx.amount,
+      tx.paymentMethod || '',
+      tx.notes || '',
+    ]
+      .map(escapeCsv)
+      .join(',')
+  )
+
+  const blob = new Blob(
+    [[headers.map(escapeCsv).join(','), ...rows].join('\n')],
+    { type: 'text/csv;charset=utf-8;' }
+  )
+
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `finwise-transactions-${toDateKey(new Date())}.csv`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
@@ -27,164 +109,321 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onSelectTransaction,
   onSuccessToast,
 }) => {
-  const { transactions, formatMoney, categoryTotals } = useFinancial()
+  const { transactions, formatMoney } = useFinancial()
 
-  const [activeTab, setActiveTab] = useState<'list' | 'calendar' | 'analytics'>('list')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('All')
-  const [selectedType, setSelectedType] = useState<'all' | 'expense' | 'income'>('all')
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
-  const [calendarSelectedDate, setCalendarSelectedDate] = useState<string>('2026-09-02')
+  const today = useMemo(() => new Date(), [])
+  const todayKey = toDateKey(today)
 
-  // Filter and sort transactions
+  const [activeTab, setActiveTab] = useState<HistoryTab>('calendar')
+  const [viewMonth, setViewMonth] = useState(
+    () => new Date(today.getFullYear(), today.getMonth(), 1)
+  )
+  const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [query, setQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [sortNewest, setSortNewest] = useState(true)
+
+  const normalizedQuery = query.trim().toLowerCase()
+
   const filteredTransactions = useMemo(() => {
-    return transactions
-      .filter((tx) => {
-        // Type filter
-        if (selectedType !== 'all' && tx.type !== selectedType) return false
+  return [...transactions]
+    .filter((tx) => {
+      if (typeFilter !== 'all' && tx.type !== typeFilter) return false
+      if (!normalizedQuery) return true
 
-        // Category filter
-        if (selectedCategory !== 'All' && tx.category !== selectedCategory) return false
+      const haystack = [
+        tx.merchant,
+        tx.category,
+        tx.notes,
+        tx.paymentMethod,
+        tx.date,
+        tx.displayDate,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
 
-        // Text search
-        const q = searchQuery.toLowerCase().trim()
-        if (q) {
-          const match =
-            tx.merchant.toLowerCase().includes(q) ||
-            tx.category.toLowerCase().includes(q) ||
-            (tx.notes && tx.notes.toLowerCase().includes(q)) ||
-            (tx.paymentMethod && tx.paymentMethod.toLowerCase().includes(q)) ||
-            (tx.items &&
-              tx.items.some((it) => it.name.toLowerCase().includes(q)))
-          if (!match) return false
-        }
+      return haystack.includes(normalizedQuery)
+    })
+    .sort((a, b) => {
+      const aTime = a.timestamp || parseDateKey(a.date)?.getTime() || 0
+      const bTime = b.timestamp || parseDateKey(b.date)?.getTime() || 0
+      return sortNewest ? bTime - aTime : aTime - bTime
+    })
+}, [transactions, typeFilter, normalizedQuery, sortNewest])
 
-        return true
-      })
-      .sort((a, b) => {
-        if (sortBy === 'newest') return b.timestamp - a.timestamp
-        if (sortBy === 'oldest') return a.timestamp - b.timestamp
-        if (sortBy === 'highest') return b.amount - a.amount
-        if (sortBy === 'lowest') return a.amount - b.amount
-        return 0
-      })
-  }, [transactions, selectedType, selectedCategory, searchQuery, sortBy])
+  const monthTransactions = useMemo(() => {
+    const year = viewMonth.getFullYear()
+    const month = viewMonth.getMonth()
 
-  // Group transactions for List View
-  const groupedList = useMemo(() => {
-    const groups: { title: string; items: Transaction[] }[] = [
-      { title: 'Today (02 Sep 2026)', items: [] },
-      { title: 'Yesterday (01 Sep 2026)', items: [] },
-      { title: 'Late August 2026', items: [] },
-      { title: 'Earlier Activity', items: [] },
-    ]
+    return filteredTransactions.filter((tx) => {
+      const date = parseDateKey(tx.date)
+      return date?.getFullYear() === year && date.getMonth() === month
+    })
+  }, [filteredTransactions, viewMonth])
 
-    filteredTransactions.forEach((tx) => {
-      if (tx.date === '2026-09-02' || tx.displayDate?.includes('Today')) {
-        groups[0].items.push(tx)
-      } else if (tx.date === '2026-09-01' || tx.displayDate?.includes('Yesterday')) {
-        groups[1].items.push(tx)
-      } else if (tx.date.startsWith('2026-08-2') || tx.date.startsWith('2026-08-3')) {
-        groups[2].items.push(tx)
-      } else {
-        groups[3].items.push(tx)
-      }
+  const transactionsByDate = useMemo(() => {
+    const grouped: Record<string, Transaction[]> = {}
+
+    monthTransactions.forEach((tx) => {
+      const key = tx.date.slice(0, 10)
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(tx)
     })
 
-    return groups.filter((g) => g.items.length > 0)
-  }, [filteredTransactions])
+    return grouped
+  }, [monthTransactions])
 
-  // Calendar Day Data
   const calendarDays = useMemo(() => {
-    // Generate 30 days for September 2026 (starts on Tuesday = offset 2)
-    const days = []
-    for (let day = 1; day <= 30; day++) {
-      const dateStr = `2026-09-${day < 10 ? `0${day}` : day}`
-      const dayTxs = transactions.filter((tx) => tx.date === dateStr)
-      const dayExpense = dayTxs
-        .filter((t) => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0)
-      const dayIncome = dayTxs
-        .filter((t) => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0)
+    const year = viewMonth.getFullYear()
+    const month = viewMonth.getMonth()
+    const firstDay = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
 
-      days.push({
-        day,
-        dateStr,
-        transactions: dayTxs,
-        dayExpense,
-        dayIncome,
-      })
+    const cells: Array<{ key: string; day: number | null }> = []
+
+    for (let i = 0; i < firstDay; i += 1) {
+      cells.push({ key: `empty-${i}`, day: null })
     }
-    return days
-  }, [transactions])
 
-  const selectedCalendarDayData = useMemo(() => {
-    return (
-      calendarDays.find((d) => d.dateStr === calendarSelectedDate) ||
-      calendarDays[1] // 02 Sep
-    )
-  }, [calendarDays, calendarSelectedDate])
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day)
+      cells.push({ key: toDateKey(date), day })
+    }
 
-  // Analytics View calculations
-  const paymentMethodSplit = useMemo(() => {
-    const split: Record<string, number> = { UPI: 0, Card: 0, Cash: 0, NetBanking: 0 }
-    transactions
-      .filter((t) => t.type === 'expense')
+    // Keep the grid stable at complete weeks.
+    while (cells.length % 7 !== 0) {
+      cells.push({ key: `empty-end-${cells.length}`, day: null })
+    }
+
+    return cells
+  }, [viewMonth])
+
+  const selectedDateObject = useMemo(
+    () => parseDateKey(selectedDate) || today,
+    [selectedDate, today]
+  )
+
+  const selectedTransactions = transactionsByDate[selectedDate] || []
+
+  const selectedSpent = selectedTransactions
+    .filter((tx) => tx.type === 'expense')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const selectedIncome = selectedTransactions
+    .filter((tx) => tx.type === 'income')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const monthSpent = monthTransactions
+    .filter((tx) => tx.type === 'expense')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const monthIncome = monthTransactions
+    .filter((tx) => tx.type === 'income')
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const categoryAnalytics = useMemo(() => {
+    const totals: Record<string, number> = {}
+
+    monthTransactions
+      .filter((tx) => tx.type === 'expense')
       .forEach((tx) => {
-        const method = tx.paymentMethod || 'UPI'
-        split[method] = (split[method] || 0) + tx.amount
+        totals[tx.category] = (totals[tx.category] || 0) + tx.amount
       })
-    return split
-  }, [transactions])
 
-  const exportCSV = () => {
-    const headers = 'ID,Date,Merchant,Category,Type,Amount,PaymentMethod,Notes\n'
-    const rows = filteredTransactions
-      .map(
-        (t) =>
-          `"${t.id}","${t.date}","${t.merchant}","${t.category}","${t.type}",${t.amount},"${t.paymentMethod || 'UPI'}","${(t.notes || '').replace(/"/g, '""')}"`
+    return Object.entries(totals).sort((a, b) => b[1] - a[1])
+  }, [monthTransactions])
+
+  const maxCategoryAmount = categoryAnalytics[0]?.[1] || 0
+
+  const changeMonth = (delta: number) => {
+    const next = new Date(
+      viewMonth.getFullYear(),
+      viewMonth.getMonth() + delta,
+      1
+    )
+
+    setViewMonth(next)
+
+    // Select the first day that has activity in the newly opened month.
+    // If there is no activity, select the first day of the month.
+    const firstTransaction = filteredTransactions
+      .map((tx) => parseDateKey(tx.date))
+      .filter(
+        (date): date is Date =>
+          !!date &&
+          date.getFullYear() === next.getFullYear() &&
+          date.getMonth() === next.getMonth()
       )
-      .join('\n')
+      .sort((a, b) => a.getTime() - b.getTime())[0]
 
-    const blob = new Blob([headers + rows], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `finwise_student_transactions_${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    onSuccessToast('Exported filtered transactions as CSV!')
+    setSelectedDate(
+      firstTransaction
+        ? toDateKey(firstTransaction)
+        : toDateKey(new Date(next.getFullYear(), next.getMonth(), 1))
+    )
+  }
+
+  const jumpToToday = () => {
+    const next = new Date(today.getFullYear(), today.getMonth(), 1)
+    setViewMonth(next)
+    setSelectedDate(todayKey)
+  }
+
+  const handleDayClick = (key: string) => {
+    setSelectedDate(key)
+  }
+
+  const handleAddForSelectedDate = () => {
+    onOpenAddExpense()
+    onSuccessToast(
+      `Add the transaction for ${formatLongDate(selectedDateObject)}.`,
+      'info'
+    )
   }
 
   return (
-    <div className="history-view">
-      {/* Header */}
-      <section className="page-heading">
+    <div className="history-page">
+      <style>{`
+        .history-page .calendar-nav {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          gap: 8px !important;
+          flex-direction: row !important;
+        }
+
+        .history-page .calendar-cell {
+          color: #f8fbff !important;
+          background: #0d1d32 !important;
+          font-family: var(--font-body) !important;
+        }
+
+        .history-page .calendar-cell .cal-day-num {
+          color: #f8fbff !important;
+          font-weight: 800 !important;
+        }
+
+        .history-page .calendar-cell:hover:not(.empty) {
+          color: #f8fbff !important;
+          background: #112640 !important;
+        }
+
+        .history-page .calendar-cell.selected {
+          color: #f8fbff !important;
+          background: #17375f !important;
+        }
+
+        .history-page .calendar-cell.today {
+          color: #f8fbff !important;
+        }
+
+        .history-page .cal-meta {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 2px !important;
+          min-height: 28px !important;
+          overflow: hidden !important;
+        }
+
+        .history-page .cal-spend-tag,
+        .history-page .cal-income-tag,
+        .history-page .cal-entry-count {
+          display: block !important;
+          line-height: 1.2 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          max-width: 100% !important;
+        }
+
+        .history-page .cal-entry-count {
+          color: #9fb2c9 !important;
+          font-size: 9px !important;
+          font-weight: 600 !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .transaction {
+          width: 100% !important;
+          min-height: 58px !important;
+          box-sizing: border-box !important;
+          display: grid !important;
+          grid-template-columns: 38px minmax(0, 1fr) auto !important;
+          align-items: center !important;
+          gap: 10px !important;
+          padding: 10px 12px !important;
+          margin: 0 !important;
+          border: 1px solid #263d5b !important;
+          border-radius: 12px !important;
+          background: #122640 !important;
+          color: #f8fbff !important;
+          text-align: left !important;
+          cursor: pointer !important;
+          appearance: none !important;
+          -webkit-appearance: none !important;
+          box-shadow: none !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .transaction:hover {
+          background: #193653 !important;
+          border-color: #365575 !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .transaction .transaction-name strong {
+          color: #f8fbff !important;
+          font-size: 13px !important;
+          font-weight: 700 !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .transaction .transaction-name small {
+          color: #9fb2c9 !important;
+          font-size: 11px !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .transaction > strong {
+          font-size: 13px !important;
+          white-space: nowrap !important;
+        }
+
+        .history-page .calendar-inspector-card .day-tx-list .merchant-icon {
+          width: 38px !important;
+          height: 38px !important;
+          border-radius: 10px !important;
+        }
+
+        .history-page .calendar-inspector-card .empty-state {
+          flex: 1 !important;
+          display: flex !important;
+          align-items: flex-start !important;
+          justify-content: flex-start !important;
+          padding-top: 12px !important;
+        }
+      `}</style>
+      <section className="page-head">
         <div>
-          <p className="eyebrow">STUDENT EXPENSE & INCOME LEDGER</p>
+          <p className="eyebrow">TRANSACTION RECORDS</p>
           <h1>Financial History</h1>
-          <p className="muted">
-            All your historical transactions, searchable, editable, and grouped by date.
+          <p>
+            All your historical transactions, searchable, editable, and grouped
+            by date.
           </p>
         </div>
 
-        <div className="heading-actions-cluster">
+        <div className="page-head-actions">
           <button
             type="button"
             className="secondary-btn"
-            onClick={exportCSV}
-            title="Download records as CSV spreadsheet"
+            onClick={() => downloadCsv(filteredTransactions)}
+            disabled={filteredTransactions.length === 0}
           >
-            <Download size={16} /> Export CSV
+            <Download size={15} /> Export CSV
           </button>
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={onOpenScanner}
-          >
+
+          <button type="button" className="secondary-btn" onClick={onOpenScanner}>
             Scan receipt
           </button>
+
           <button
             type="button"
             className="primary-btn"
@@ -195,366 +434,418 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         </div>
       </section>
 
-      {/* View Switcher Tabs */}
       <div className="history-tabs-bar">
         <div className="tab-pill-group">
           <button
             type="button"
-            className={`tab-pill ${activeTab === 'list' ? 'active' : ''}`}
-            onClick={() => setActiveTab('list')}
+            className={`tab-pill ${activeTab === 'timeline' ? 'active' : ''}`}
+            onClick={() => setActiveTab('timeline')}
           >
-            <List size={16} /> List Timeline
+            <List size={14} /> List Timeline
           </button>
+
           <button
             type="button"
             className={`tab-pill ${activeTab === 'calendar' ? 'active' : ''}`}
             onClick={() => setActiveTab('calendar')}
           >
-            <Calendar size={16} /> Calendar Matrix
+            <CalendarDays size={14} /> Calendar Matrix
           </button>
+
           <button
             type="button"
             className={`tab-pill ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
-            <BarChart3 size={16} /> Analytics Breakdown
+            <BarChart3 size={14} /> Analytics Breakdown
           </button>
         </div>
 
-        <div className="history-quick-stats">
-          <span>
-            Total Entries: <strong>{filteredTransactions.length}</strong>
-          </span>
-        </div>
+        <strong>Total Entries: {filteredTransactions.length}</strong>
       </div>
 
-      {/* Filter and Search Bar */}
       <div className="card filter-bar-card">
         <div className="search-box inline-search">
           <Search size={16} />
           <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Search by merchant, food item, or note..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         <div className="filter-controls-group">
-          {/* Category Filter */}
           <div className="select-with-icon">
-            <Filter size={14} />
+            <Filter size={13} />
             <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              aria-label="Filter by Category"
+              value={typeFilter}
+              onChange={(event) =>
+                setTypeFilter(event.target.value as TypeFilter)
+              }
+              aria-label="Transaction type"
             >
-              <option value="All">All Categories</option>
-              <option value="Food">Food</option>
-              <option value="Travel">Travel</option>
-              <option value="Education">Education</option>
-              <option value="Subscriptions">Subscriptions</option>
-              <option value="Shopping">Shopping</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Bills">Bills</option>
-              <option value="Health">Health</option>
-              <option value="Income">Income Only</option>
-              <option value="Other">Other</option>
+              <option value="all">All Types (Income & Expenses)</option>
+              <option value="income">Income Only</option>
+              <option value="expense">Expenses Only</option>
             </select>
           </div>
 
-          {/* Type Filter */}
           <select
-            value={selectedType}
-            onChange={(e) =>
-              setSelectedType(e.target.value as 'all' | 'expense' | 'income')
-            }
-            aria-label="Filter by Type"
-          >
-            <option value="all">All Types (Income & Expenses)</option>
-            <option value="expense">Expenses Only</option>
-            <option value="income">Income Only</option>
-          </select>
-
-          {/* Sort By */}
-          <select
-            value={sortBy}
-            onChange={(e) =>
-              setSortBy(
-                e.target.value as 'newest' | 'oldest' | 'highest' | 'lowest'
-              )
-            }
-            aria-label="Sort Transactions"
+            value={sortNewest ? 'newest' : 'oldest'}
+            onChange={(event) => setSortNewest(event.target.value === 'newest')}
+            aria-label="Sort transactions"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
-            <option value="highest">Highest Amount</option>
-            <option value="lowest">Lowest Amount</option>
           </select>
         </div>
       </div>
 
-      {/* VIEW 1: LIST VIEW */}
-      {activeTab === 'list' && (
-        <div className="history-list-container">
-          {groupedList.length === 0 ? (
-            <div className="card empty-state-card">
-              <History size={40} className="empty-icon" />
-              <h3>No matching transactions found</h3>
-              <p>Try clearing your search query or changing category filters.</p>
-              <button
-                type="button"
-                className="secondary-btn"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedCategory('All')
-                  setSelectedType('all')
-                }}
-              >
-                Reset all filters
-              </button>
-            </div>
-          ) : (
-            groupedList.map((group, gIdx) => (
-              <div key={gIdx} className="timeline-group">
-                <div className="timeline-header">
-                  <span className="timeline-dot" />
-                  <h3>{group.title}</h3>
-                  <span className="timeline-count">{group.items.length} items</span>
-                </div>
-
-                <div className="card timeline-card">
-                  {group.items.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="transaction clickable"
-                      onClick={() => onSelectTransaction(tx)}
-                      title="Click to view full receipt details, edit, or delete"
-                    >
-                      <div className={`merchant-icon ${tx.category.toLowerCase()}`}>
-                        {tx.category.slice(0, 3)}
-                      </div>
-
-                      <div className="transaction-name">
-                        <div className="tx-title-row">
-                          <strong>{tx.merchant}</strong>
-                          {tx.items && tx.items.length > 0 && (
-                            <span className="items-chip">
-                              <Layers size={11} /> {tx.items.length} items
-                            </span>
-                          )}
-                          {tx.paymentMethod && (
-                            <span className="method-pill">{tx.paymentMethod}</span>
-                          )}
-                        </div>
-                        <small>
-                          {tx.category} · {tx.displayDate || tx.date}
-                          {tx.notes ? ` · "${tx.notes}"` : ''}
-                        </small>
-                      </div>
-
-                      <div className="transaction-amount-col">
-                        <strong
-                          className={tx.type === 'income' ? 'income' : 'expense'}
-                        >
-                          {tx.type === 'income' ? '+' : '-'}
-                          {formatMoney(tx.amount)}
-                        </strong>
-                        <small>Tap to edit</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* VIEW 2: CALENDAR MATRIX VIEW */}
       {activeTab === 'calendar' && (
         <div className="history-calendar-layout">
           <div className="card calendar-matrix-card">
             <div className="calendar-month-header">
-              <h3>September 2026</h3>
-              <span className="badge-pill">Current Semester</span>
+              <div>
+                <h3>{formatMonth(viewMonth)}</h3>
+                <small>
+                  {monthTransactions.length}{' '}
+                  {monthTransactions.length === 1
+                    ? 'record'
+                    : 'records'}{' '}
+                  in this month
+                </small>
+              </div>
+
+              <div className="calendar-nav">
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => changeMonth(-1)}
+                  aria-label="Previous month"
+                  title="Previous month"
+                >
+                  <ChevronLeft size={17} />
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-btn small"
+                  onClick={jumpToToday}
+                >
+                  Today
+                </button>
+
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => changeMonth(1)}
+                  aria-label="Next month"
+                  title="Next month"
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
             </div>
 
             <div className="calendar-weekdays-grid">
-              <span>Sun</span>
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
+              {WEEKDAYS.map((day) => (
+                <span key={day}>{day}</span>
+              ))}
             </div>
 
             <div className="calendar-days-grid">
-              {/* September 2026 starts on Tuesday (offset 2 empty cells) */}
-              <div className="calendar-cell empty" />
-              <div className="calendar-cell empty" />
+              {calendarDays.map((cell) => {
+                if (!cell.day) {
+                  return (
+                    <div
+                      key={cell.key}
+                      className="calendar-cell empty"
+                      aria-hidden="true"
+                    />
+                  )
+                }
 
-              {calendarDays.map((d) => {
-                const isSelected = d.dateStr === calendarSelectedDate
-                const hasExpense = d.dayExpense > 0
-                const hasIncome = d.dayIncome > 0
-                const isToday = d.day === 2
+                const dayTransactions = transactionsByDate[cell.key] || []
+                const daySpent = dayTransactions
+                  .filter((tx) => tx.type === 'expense')
+                  .reduce((sum, tx) => sum + tx.amount, 0)
+                const dayIncome = dayTransactions
+                  .filter((tx) => tx.type === 'income')
+                  .reduce((sum, tx) => sum + tx.amount, 0)
+
+                const isSelected = selectedDate === cell.key
+                const isToday = todayKey === cell.key
 
                 return (
-                  <div
-                    key={d.day}
-                    className={`calendar-cell ${isSelected ? 'selected' : ''} ${
-                      isToday ? 'today' : ''
-                    } ${hasExpense ? 'has-expense' : ''} ${hasIncome ? 'has-income' : ''}`}
-                    onClick={() => setCalendarSelectedDate(d.dateStr)}
+                  <button
+                    type="button"
+                    key={cell.key}
+                    className={`calendar-cell ${isToday ? 'today' : ''} ${
+                      isSelected ? 'selected' : ''
+                    }`}
+                    onClick={() => handleDayClick(cell.key)}
+                    aria-label={`${cell.day} ${formatMonth(viewMonth)}`}
+                    aria-pressed={isSelected}
                   >
-                    <span className="cal-day-num">{d.day}</span>
-                    {hasExpense && (
-                      <span className="cal-spend-tag">-{formatMoney(d.dayExpense)}</span>
-                    )}
-                    {hasIncome && (
-                      <span className="cal-income-tag">+{formatMoney(d.dayIncome)}</span>
-                    )}
-                  </div>
+                    <span className="cal-day-num">{cell.day}</span>
+
+                    <span className="cal-meta">
+                      {daySpent > 0 && (
+                        <span className="cal-spend-tag">
+                          −{formatMoney(daySpent)}
+                        </span>
+                      )}
+
+                      {dayIncome > 0 && (
+                        <span className="cal-income-tag">
+                          +{formatMoney(dayIncome)}
+                        </span>
+                      )}
+
+                      {dayTransactions.length > 0 && (
+                        <span className="cal-entry-count">
+                          {dayTransactions.length}{' '}
+                          {dayTransactions.length === 1 ? 'entry' : 'entries'}
+                        </span>
+                      )}
+                    </span>
+                  </button>
                 )
               })}
             </div>
           </div>
 
-          {/* Day Inspection Drawer */}
-          <div className="card calendar-inspector-card">
-            <div className="card-head">
+          <aside className="card calendar-inspector-card">
+            <div className="inspector-head">
               <div>
                 <p className="eyebrow">DAY INSPECTOR</p>
-                <h2>{calendarSelectedDate}</h2>
+                <h3>{formatLongDate(selectedDateObject)}</h3>
               </div>
-              <span className="tiny-chip">
-                {selectedCalendarDayData.transactions.length} entries
-              </span>
+              <strong>
+                {selectedTransactions.length}{' '}
+                {selectedTransactions.length === 1 ? 'entry' : 'entries'}
+              </strong>
             </div>
 
             <div className="day-summary-metrics">
               <div>
                 <span>Total Spent</span>
                 <strong className="expense">
-                  -{formatMoney(selectedCalendarDayData.dayExpense)}
+                  −{formatMoney(selectedSpent)}
                 </strong>
               </div>
+
               <div>
                 <span>Total Income</span>
                 <strong className="income">
-                  +{formatMoney(selectedCalendarDayData.dayIncome)}
+                  +{formatMoney(selectedIncome)}
                 </strong>
               </div>
             </div>
 
-            <div className="day-tx-list">
-              {selectedCalendarDayData.transactions.length === 0 ? (
-                <p className="empty-text">No financial activity recorded on this day.</p>
-              ) : (
-                selectedCalendarDayData.transactions.map((tx) => (
-                  <div
+            {selectedTransactions.length === 0 ? (
+              <div className="empty-state">
+                <p>No financial activity recorded on this day.</p>
+              </div>
+            ) : (
+              <div className="day-tx-list">
+                {selectedTransactions.map((tx) => (
+                  <button
+                    type="button"
                     key={tx.id}
                     className="transaction clickable"
                     onClick={() => onSelectTransaction(tx)}
                   >
-                    <div className={`merchant-icon ${tx.category.toLowerCase()}`}>
+                    <div
+                      className={`merchant-icon ${tx.category.toLowerCase()}`}
+                    >
                       {tx.category.slice(0, 3)}
                     </div>
+
                     <div className="transaction-name">
                       <strong>{tx.merchant}</strong>
-                      <small>{tx.category}</small>
+                      <small>
+                        {tx.category}
+                        {tx.paymentMethod ? ` · ${tx.paymentMethod}` : ''}
+                      </small>
                     </div>
-                    <strong className={tx.type === 'income' ? 'income' : 'expense'}>
+
+                    <strong
+                      className={
+                        tx.type === 'income' ? 'income' : 'expense'
+                      }
+                    >
                       {tx.type === 'income' ? '+' : '-'}
                       {formatMoney(tx.amount)}
                     </strong>
-                  </div>
-                ))
-              )}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <button
               type="button"
-              className="secondary-btn full"
-              style={{ marginTop: '16px' }}
-              onClick={onOpenAddExpense}
+              className="secondary-btn full-width"
+              onClick={handleAddForSelectedDate}
             >
               <Plus size={15} /> Add entry on this date
             </button>
-          </div>
+          </aside>
         </div>
       )}
 
-      {/* VIEW 3: ANALYTICS VIEW */}
+      {activeTab === 'timeline' && (
+        <div>
+          {filteredTransactions.length === 0 ? (
+            <div className="card empty-state">
+              <Activity size={24} />
+              <h3>No transactions yet</h3>
+              <p>
+                Record your first income or expense and it will appear here.
+              </p>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={onOpenAddExpense}
+              >
+                <Plus size={15} /> Record cashflow
+              </button>
+            </div>
+          ) : (
+            (() => {
+              const grouped: Record<string, Transaction[]> = {}
+
+              filteredTransactions.forEach((tx) => {
+                if (!grouped[tx.date]) grouped[tx.date] = []
+                grouped[tx.date].push(tx)
+              })
+
+              return Object.entries(grouped).map(([dateKey, dayItems]) => {
+                const date = parseDateKey(dateKey)
+                if (!date) return null
+
+                return (
+                  <section className="timeline-group" key={dateKey}>
+                    <div className="timeline-header">
+                      <span className="timeline-dot" />
+                      <h3>{formatLongDate(date)}</h3>
+                      <span className="timeline-count">
+                        {dayItems.length}
+                      </span>
+                    </div>
+
+                    <div className="card timeline-card">
+                      {dayItems.map((tx) => (
+                        <button
+                          type="button"
+                          key={tx.id}
+                          className="transaction clickable"
+                          onClick={() => onSelectTransaction(tx)}
+                        >
+                          <div
+                            className={`merchant-icon ${tx.category.toLowerCase()}`}
+                          >
+                            {tx.category.slice(0, 3)}
+                          </div>
+
+                          <div className="transaction-name">
+                            <strong>{tx.merchant}</strong>
+                            <small>
+                              {tx.category}
+                              {tx.paymentMethod
+                                ? ` · ${tx.paymentMethod}`
+                                : ''}
+                              {tx.notes ? ` · ${tx.notes}` : ''}
+                            </small>
+                          </div>
+
+                          <strong
+                            className={
+                              tx.type === 'income' ? 'income' : 'expense'
+                            }
+                          >
+                            {tx.type === 'income' ? '+' : '-'}
+                            {formatMoney(tx.amount)}
+                          </strong>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )
+              })
+            })()
+          )}
+        </div>
+      )}
+
       {activeTab === 'analytics' && (
         <div className="history-analytics-layout">
-          {/* Payment Method Distribution */}
-          <div className="card analytics-card">
+          <div className="card">
             <div className="card-head">
               <div>
-                <p className="eyebrow">PAYMENT METHODS</p>
-                <h2>Where you swipe or pay</h2>
+                <p className="eyebrow">MONTH SUMMARY</p>
+                <h2>{formatMonth(viewMonth)}</h2>
               </div>
-              <CreditCard size={18} />
             </div>
 
             <div className="payment-split-grid">
-              {Object.entries(paymentMethodSplit).map(([method, amt]) => (
-                <div key={method} className="method-card">
-                  <span>{method}</span>
-                  <strong>{formatMoney(amt)}</strong>
-                  <small>
-                    {filteredTransactions.length > 0
-                      ? `${Math.round(
-                          (amt /
-                            Math.max(
-                              1,
-                              Object.values(paymentMethodSplit).reduce(
-                                (a, b) => a + b,
-                                0
-                              )
-                            )) *
-                            100
-                        )}% of outgo`
-                      : '0%'}
-                  </small>
-                </div>
-              ))}
-            </div>
-          </div>
+              <div className="method-card">
+                <span>Total Income</span>
+                <strong className="income">+{formatMoney(monthIncome)}</strong>
+                <small>{monthTransactions.filter((tx) => tx.type === 'income').length} entries</small>
+              </div>
 
-          {/* Category Spending Table */}
-          <div className="card analytics-card">
-            <div className="card-head">
-              <div>
-                <p className="eyebrow">EXPENDITURE RANKING</p>
-                <h2>Category Distribution</h2>
+              <div className="method-card">
+                <span>Total Spent</span>
+                <strong className="expense">−{formatMoney(monthSpent)}</strong>
+                <small>{monthTransactions.filter((tx) => tx.type === 'expense').length} entries</small>
               </div>
             </div>
 
-            <div className="category-rankings-table">
-              {Object.entries(categoryTotals)
-                .filter(([cat]) => cat !== 'Income')
-                .sort((a, b) => b[1] - a[1])
-                .map(([cat, amt]) => (
-                  <div key={cat} className="rank-row">
-                    <span className="rank-cat">{cat}</span>
+            <div className="method-card" style={{ marginTop: 12 }}>
+              <span>Net Cashflow</span>
+              <strong className={monthIncome - monthSpent >= 0 ? 'income' : 'expense'}>
+                {monthIncome - monthSpent >= 0 ? '+' : '−'}
+                {formatMoney(Math.abs(monthIncome - monthSpent))}
+              </strong>
+              <small>Based only on recorded transactions</small>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-head">
+              <div>
+                <p className="eyebrow">CATEGORY BREAKDOWN</p>
+                <h2>Where your money went</h2>
+              </div>
+            </div>
+
+            {categoryAnalytics.length === 0 ? (
+              <div className="empty-state">
+                <p>No expense data for {formatMonth(viewMonth)} yet.</p>
+              </div>
+            ) : (
+              <div className="category-rankings-table">
+                {categoryAnalytics.map(([category, amount]) => (
+                  <div className="rank-row" key={category}>
+                    <span>{category}</span>
                     <div className="rank-bar-wrap">
                       <div
                         className="rank-bar-fill"
                         style={{
-                          width: `${Math.min(
-                            100,
-                            (amt / Math.max(1, categoryTotals.Food || 2000)) * 100
-                          )}%`,
+                          width: `${
+                            maxCategoryAmount > 0
+                              ? Math.round((amount / maxCategoryAmount) * 100)
+                              : 0
+                          }%`,
                         }}
                       />
                     </div>
-                    <strong>{formatMoney(amt)}</strong>
+                    <strong>{formatMoney(amount)}</strong>
                   </div>
                 ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

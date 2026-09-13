@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   Download,
-  Printer,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 
@@ -40,10 +39,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
     onSuccessToast('Financial report CSV downloaded.')
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   return (
     <div className="reports-view">
       <section className="page-heading">
@@ -58,13 +53,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
         <div className="heading-actions-cluster">
           <button
             type="button"
-            className="secondary-btn"
-            onClick={handlePrint}
-          >
-            <Printer size={15} /> Print
-          </button>
-          <button
-            type="button"
             className="primary-btn"
             onClick={handleDownloadCSV}
           >
@@ -73,13 +61,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
         </div>
       </section>
 
-      {/* Printable Report Document Card */}
+      {/* Report Document Card */}
       <div className="card report-document-card">
         <div className="report-doc-header">
           <div>
             <h2>Finwise Student Statement</h2>
             <p className="muted">Statement Period: 01 Aug 2026 – 02 Sep 2026</p>
           </div>
+
           <div className="report-student-meta">
             <strong>{profile.name}</strong>
             <span>{profile.college}</span>
@@ -90,25 +79,35 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
         <div className="report-summary-metrics">
           <div className="rep-metric">
             <span>Total Inflow</span>
-            <strong className="income">+{formatMoney(totalIncome)}</strong>
+            <strong className="income">
+              +{formatMoney(totalIncome)}
+            </strong>
           </div>
+
           <div className="rep-metric">
             <span>Total Outflow</span>
-            <strong className="expense">-{formatMoney(totalExpenses)}</strong>
+            <strong className="expense">
+              -{formatMoney(totalExpenses)}
+            </strong>
           </div>
+
           <div className="rep-metric">
             <span>Net Saved</span>
             <strong>{formatMoney(netSavings)}</strong>
           </div>
+
           <div className="rep-metric">
             <span>Closing Balance</span>
-            <strong style={{ color: '#1f9d67' }}>{formatMoney(currentBalance)}</strong>
+            <strong style={{ color: '#1f9d67' }}>
+              {formatMoney(currentBalance)}
+            </strong>
           </div>
         </div>
 
         {/* Category Breakdown Table */}
         <div className="report-table-section">
           <h3>Category Outflow Breakdown</h3>
+
           <table className="report-table">
             <thead>
               <tr>
@@ -118,18 +117,25 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
                 <th>Status</th>
               </tr>
             </thead>
+
             <tbody>
               {Object.entries(categoryTotals)
                 .filter(([cat]) => cat !== 'Income')
                 .map(([cat, amt]) => {
-                  const pct = totalExpenses > 0 ? Math.round((amt / totalExpenses) * 100) : 0
+                  const pct =
+                    totalExpenses > 0
+                      ? Math.round((amt / totalExpenses) * 100)
+                      : 0
+
                   return (
                     <tr key={cat}>
                       <td>{cat}</td>
                       <td>{formatMoney(amt)}</td>
                       <td>{pct}%</td>
                       <td>
-                        <span className="status-pill success">Verified</span>
+                        <span className="status-pill success">
+                          Verified
+                        </span>
                       </td>
                     </tr>
                   )
