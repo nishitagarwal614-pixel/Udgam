@@ -4,11 +4,17 @@ import {
   CreditCard,
   Plus,
   ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
   BarChart3,
   TrendingUp,
   ChevronRight,
   Target,
   HelpCircle,
+  Search,
+  Sparkles,
+  Gauge,
+  Bot,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 import type { Category, Transaction } from '../types'
@@ -24,22 +30,55 @@ interface OverviewViewProps {
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
+  onOpenAddExpense,
+  onOpenAddIncome,
   onOpenAffordModal,
   onOpenSafeModal,
   onOpenHealthModal,
   onSelectTransaction,
 }) => {
   const {
+    totalIncome,
     totalExpenses,
+    currentBalance,
+    safeToSpend,
+    healthScore,
+    predictedMonthEnd,
     categoryTotals,
     topSpendingCategory,
     budgets,
+    goals,
+    transactions,
     profile,
     setActiveView,
+    setShowOnboarding,
     formatMoney,
   } = useFinancial()
 
+  const [query, setQuery] = useState('')
   const [spendPeriod, setSpendPeriod] = useState<'this-month' | 'last-month'>('this-month')
+
+  const totalBudgetLimit = budgets.reduce((s, b) => s + b.limit, 0)
+  const effectiveBudget =
+    totalBudgetLimit > 0
+      ? totalBudgetLimit
+      : totalIncome > 0
+        ? totalIncome
+        : 15000
+  const moneyUsed = totalExpenses
+  const moneyLeft = Math.max(0, effectiveBudget - moneyUsed)
+
+  const filteredRecent = transactions
+    .filter((t) => {
+      if (!query.trim()) return true
+      const q = query.toLowerCase()
+      return (
+        t.merchant.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        (t.notes && t.notes.toLowerCase().includes(q))
+      )
+    })
+    .slice(0, 5)
 
   // Calculate category percentages for the donut chart
   const categoriesList: { category: Category; label: string; color: string }[] = [
@@ -87,34 +126,39 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       )
     : 0
 
-  // Overall budget progress
-  const totalBudgetLimit = budgets.reduce((s, b) => s + b.limit, 0)
-  const effectiveBudget =
+  const budgetPercent =
     totalBudgetLimit > 0
       ? Math.min(100, Math.round((totalExpenses / totalBudgetLimit) * 100))
       : 0
+  const gaugeRadius = 38
+  const gaugeCircumference = 2 * Math.PI * gaugeRadius
+  const gaugeDashoffset =
+    gaugeCircumference - (budgetPercent / 100) * gaugeCircumference
+  const totalBudgetProgress = budgetPercent
 
   return (
     <div className="overview-view">
       {/* Top Header Section */}
-      <section className="page-heading">
+      <section className="page-heading banner">
         <div>
-          <p className="eyebrow">
-            {new Date().toLocaleDateString('en-IN', {
-             weekday: 'long',
-             day: '2-digit',
-             month: 'long',
-             year: 'numeric',
-            }).toUpperCase()}
-         </p>
           <h1>
-            Good morning, {profile.name.split(' ')[0] || 'Student'} <span>*</span>
+            Good morning, {profile.name.split(' ')[0] || 'Student'} <span>✦</span>
           </h1>
           <p className="muted">
             Here's your live student cashflow, completely connected and in control.
           </p>
         </div>
 
+        <div className="banner-actions">
+          <button
+            type="button"
+            className="secondary-btn small"
+            onClick={() => setShowOnboarding(true)}
+            title="Update your answers and re-customize homepage"
+          >
+            <Sparkles size={13} /> Retake AI Setup
+          </button>
+        </div>
       </section>
 
       {/* Image 4 Components: Top 2 Metric Cards */}
@@ -133,17 +177,20 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
         </div>
 
-        <div className="banner-actions">
-          <button
-            type="button"
-            className="secondary-btn small"
-            onClick={() => setShowOnboarding(true)}
-            title="Update your answers and re-customize homepage"
-          >
-            <Sparkles size={13} /> Retake AI Setup
-          </button>
+        {/* Money Used Card */}
+        <div className="money-summary-card used">
+          <div className="money-card-icon-wrap used">
+            <CreditCard size={24} strokeWidth={2} />
+          </div>
+          <div className="money-card-content">
+            <span className="money-card-label">MONEY USED</span>
+            <strong className="money-card-value">{formatMoney(moneyUsed)}</strong>
+            <p className="money-card-subtext">
+              Total expenditure logged across all categories.
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* KPI Metric Grid */}
       <section className="metric-grid">
@@ -515,7 +562,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <div
                   key={item.id}
                   className="transaction clickable"
-                  onClick={() => onSelectTransaction(item)}
+                  onClick={() => onSelectTransaction?.(item)}
                   title="Click to view, edit, or delete"
                 >
                   <div

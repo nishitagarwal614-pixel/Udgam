@@ -24,7 +24,6 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
     deleteGoal,
     contributeToGoal,
     currentBalance,
-    profile,
     formatMoney,
   } = useFinancial()
 

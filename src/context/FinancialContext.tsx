@@ -869,72 +869,68 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }
 
-  // Intelligent Contextual AI Coach
-  const askAiCoach = async (query: string): Promise<string> => {
-    // Simulate brief thinking time
-    await new Promise((resolve) => setTimeout(resolve, 450))
-
-    const q = query.toLowerCase()
-
-    if (q.includes('where') && (q.includes('money') || q.includes('go') || q.includes('spend'))) {
-      return `Looking at your actual records: you spent a total of ${formatMoney(totalExpenses)}. Your #1 expense category is **${topSpendingCategory.category}** at ${formatMoney(topSpendingCategory.amount)} (${topSpendingCategory.percentage}% of all expenses). The categories shown here come only from transactions you recorded.`
+  // Intelligent Contextual AI Coach with Budget Engine & Optional Gemini LLM
+  const askAiCoach = async (query: string): Promise<AiCoachResponse> => {
+    const advisorContext = {
+      profile,
+      budgets,
+      categoryTotals,
+      totalIncome,
+      totalExpenses,
+      currentBalance,
+      safeToSpend,
+      healthScore,
+      predictedMonthEnd,
+      moneyRunwayDays,
+      topSpendingCategory,
+      goals,
+      formatMoney,
+      transactions,
+      subscriptions,
+      evaluateAffordability,
     }
 
-    if (q.includes('food')) {
-      const foodSpent = categoryTotals.Food || 0
-      const foodBudget = budgets.find((b) => b.category === 'Food')?.limit
-      if (!foodBudget) {
-        return `You have recorded ${formatMoney(foodSpent)} in Food spending. Add a Food budget to compare your spending against a planned limit.`
+    // Check if user has configured an optional Gemini API key for live generative AI
+    const geminiKey =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('finwise_gemini_api_key')
+        : null
+    if (geminiKey && geminiKey.trim().length > 10) {
+      try {
+        const geminiResult = await callGeminiAdvisor(query, advisorContext, geminiKey.trim())
+        if (geminiResult && geminiResult.text) {
+          // If the query was to set or update a budget, also check and execute local action
+          const localActionCheck = processBudgetAdvisorQuery(query, advisorContext)
+          if (localActionCheck.budgetActionToExecute) {
+            const { category, limit, period } = localActionCheck.budgetActionToExecute
+            setCategoryBudget(category, limit, period)
+            return {
+              text: geminiResult.text,
+              actionData: localActionCheck.actionData,
+            }
+          }
+          return {
+            text: geminiResult.text,
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini API call failed, falling back to local advisor:', err)
       }
-      const now = new Date()
-      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-      const daysLeft = Math.max(1, daysInMonth - now.getDate())
-      const pct = Math.round((foodSpent / foodBudget) * 100)
-      const remaining = Math.max(0, foodBudget - foodSpent)
-      return `You have spent **${formatMoney(foodSpent)}** on Food out of your ${formatMoney(foodBudget)} budget (${pct}% used). With ${daysLeft} days left in the month, that leaves about ${formatMoney(Math.floor(remaining / daysLeft))}/day within the remaining Food budget.`
     }
 
-    if (q.includes('can i spend') || q.includes('spend today') || q.includes('500')) {
-      const safe = safeToSpend.safeDaily
-      if (q.includes('500')) {
-        return `Your calculated safe limit for today is **${formatMoney(safe)}**. Spending ₹500 today is **feasible but slightly above pace** by ₹${500 - safe}. If you spend ₹500 today, compensate tomorrow by keeping under ₹${Math.max(100, safe - (500 - safe))}.`
-      }
-      return `Your **Safe to Spend today is ${formatMoney(safe)}**. This preserves your ₹${safeToSpend.upcomingBillsTotal} upcoming bills and your monthly goal reserves across the remaining ${safeToSpend.daysRemainingInMonth} days of the current month.`
+    // Local deterministic engine (instant, comprehensive, zero failure)
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    const result = processBudgetAdvisorQuery(query, advisorContext)
+
+    if (result.budgetActionToExecute) {
+      const { category, limit, period } = result.budgetActionToExecute
+      setCategoryBudget(category, limit, period)
     }
 
-    if (q.includes('how much can i save') || q.includes('save this month')) {
-      return `Based on your ${formatMoney(totalIncome)} income and normal spending trajectory, you are projected to save **${formatMoney(predictedMonthEnd)}** this month. If you reduce your highest-spending category, your projected savings can improve further.`
+    return {
+      text: result.text,
+      actionData: result.actionData,
     }
-
-    if (q.includes('cut') || q.includes('save 2000') || q.includes('2,000') || q.includes('reduce')) {
-      return `To reduce spending, start with your highest-spending categories shown in the dashboard. Set a budget for those categories and compare your actual transactions against it each week.`
-    }
-
-    if (q.includes('score') || q.includes('health')) {
-      return `Your Financial Health Score is **${healthScore.overall}/100**. Here is why:\n- Budget Discipline: **${healthScore.budgetDisciplineScore}/30** (based on your recorded budgets)\n- Savings Rate: **${healthScore.savingsRateScore}/25** (based on your recorded income and expenses)\n- Runway Buffer: **${healthScore.runwayScore}/25** (~${moneyRunwayDays} days of living expenses)\n- Goal Progress: **${healthScore.goalPaceScore}/20** (based on your active goals)\nTo improve your score, keep your recorded category spending within your budgets and build savings consistently.`
-    }
-
-    if (q.includes('end of the month') || q.includes('month end') || q.includes('projected') || q.includes('balance')) {
-      return `Your projected end-of-month balance is **${formatMoney(predictedMonthEnd)}**. This estimate uses your recorded spending pace and currently configured recurring bills.`
-    }
-
-    if (q.includes('laptop') || q.includes('goal') || q.includes('save')) {
-      const goal = goals[0]
-      if (!goal) {
-        return 'You do not have an active savings goal yet. Add a goal to start tracking your progress.'
-      }
-      const remaining = Math.max(0, goal.targetAmount - goal.savedAmount)
-      const percent = goal.targetAmount > 0
-        ? Math.round((goal.savedAmount / goal.targetAmount) * 100)
-        : 0
-      return `You have saved **${formatMoney(goal.savedAmount)}** towards **${goal.title}** (${percent}% complete). Remaining: ${formatMoney(remaining)}.`
-    }
-
-    // Default intelligent student finance assistant reply
-    if (transactions.length === 0 && goals.length === 0 && budgets.length === 0) {
-      return 'Your dashboard is ready. Add your income, expenses, budgets, or goals and I will use those records to answer your questions.'
-    }
-    return `Based on your current records: you have ${formatMoney(currentBalance)} in liquid balance, your safe daily spend is ${formatMoney(safeToSpend.safeDaily)}, and your financial health score is ${healthScore.overall}/100. Ask about your budgets, transactions, goals, or an upcoming purchase.`
   }
 
   return (

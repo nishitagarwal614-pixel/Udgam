@@ -32,7 +32,7 @@ import { ReportsView } from './views/ReportsView'
 import { SettingsView } from './views/SettingsView'
 import { HelpSupportView } from './views/HelpSupportView'
 
-import type { Transaction } from './types'
+import type { Transaction, TransactionType } from './types'
 
 import './App.css'
 
@@ -53,6 +53,9 @@ function AppContent() {
 
   const [isAddExpenseOpen, setIsAddExpenseOpen] =
     useState(false)
+
+  const [addTxType, setAddTxType] =
+    useState<TransactionType>('expense')
 
   const [isAffordModalOpen, setIsAffordModalOpen] =
     useState(false)
@@ -149,9 +152,8 @@ function AppContent() {
           {/* OVERVIEW */}
           {activeView === 'Overview' && (
             <OverviewView
-              onOpenAddExpense={() =>
-                setIsAddExpenseOpen(true)
-              }
+              onOpenAddExpense={handleOpenAddExpense}
+              onOpenAddIncome={handleOpenAddIncome}
               onOpenScanner={() =>
                 setIsScannerOpen(true)
               }
@@ -272,6 +274,7 @@ function AppContent() {
       {/* Add Transaction Modal */}
       <AddTransactionModal
         isOpen={isAddExpenseOpen}
+        initialType={addTxType}
         onClose={() =>
           setIsAddExpenseOpen(false)
         }
