@@ -65,7 +65,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
   const openDepositModal = (g: Goal) => {
     setActiveGoalForDeposit(g)
-    setDepositAmount(500)
+    const remaining = Math.max(0, g.targetAmount - g.savedAmount)
+    const defaultAmount = remaining > 0 ? Math.min(500, remaining) : 500
+    setDepositAmount(defaultAmount > 0 ? defaultAmount : 100)
     setIsDepositModalOpen(true)
   }
 
@@ -104,11 +106,6 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
     const amount = Number(depositAmount)
     if (!amount || amount <= 0) return
-
-    if (amount > currentBalance) {
-      onSuccessToast('Deposit amount exceeds your current liquid balance.')
-      return
-    }
 
     contributeToGoal(activeGoalForDeposit.id, amount)
     onSuccessToast(`Transferred ${formatMoney(amount)} into ${activeGoalForDeposit.title}!`)
@@ -381,8 +378,8 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                 Target Amount (₹)
                 <input
                   type="number"
-                  min="500"
-                  step="100"
+                  min="50"
+                  step="50"
                   required
                   value={targetAmount}
                   onChange={(e) =>
@@ -478,16 +475,17 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
             <h2>Deposit into {activeGoalForDeposit.title}</h2>
 
             <p className="muted" style={{ marginBottom: '14px' }}>
-              Transfers funds from your liquid balance ({formatMoney(currentBalance)}) into this target.
+              {currentBalance > 0
+                ? `Allocate funds towards your target (available liquid balance: ${formatMoney(currentBalance)}).`
+                : 'Allocate funds towards your target to build your savings.'}
             </p>
 
             <label>
               Deposit Amount (₹)
               <input
                 type="number"
-                min="50"
-                max={currentBalance}
-                step="50"
+                min="1"
+                step="any"
                 required
                 autoFocus
                 value={depositAmount}
