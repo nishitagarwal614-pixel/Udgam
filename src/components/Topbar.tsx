@@ -86,7 +86,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           onClick={() => setShowOnboarding(true)}
           title="Retake AI survey to personalize homepage"
         >
-          <Sparkles size={14} color="#1f9d67" />
+          <Sparkles size={14} color="#2563eb" />
           <span>Personalize with AI</span>
         </button>
 
@@ -223,7 +223,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                   setShowOnboarding(true)
                 }}
               >
-                <Sparkles size={15} color="#1f9d67" />
+                <Sparkles size={15} color="#2563eb" />
                 <span>Retake AI Setup</span>
               </button>
 

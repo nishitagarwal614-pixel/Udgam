@@ -79,7 +79,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
           </div>
           <div className="story-metric">
             <span>Month-End Buffer</span>
-            <strong style={{ color: '#1f9d67' }}>{formatMoney(predictedMonthEnd)}</strong>
+            <strong style={{ color: '#2563eb' }}>{formatMoney(predictedMonthEnd)}</strong>
           </div>
         </div>
       </div>
@@ -199,7 +199,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
               <p className="eyebrow">SURVIVAL RUNWAY</p>
               <h2>Student Money Runway</h2>
             </div>
-            <Hourglass size={20} color="#1f9d67" />
+            <Hourglass size={20} color="#2563eb" />
           </div>
 
           <div className="runway-hero">
@@ -227,7 +227,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({
               <p className="eyebrow">TAILORED ADVICE</p>
               <h2>Student Money Hacks</h2>
             </div>
-            <CheckCircle2 size={18} color="#1f9d67" />
+            <CheckCircle2 size={18} color="#2563eb" />
           </div>
 
           <div className="hacks-list">

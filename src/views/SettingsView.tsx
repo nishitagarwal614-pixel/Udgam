@@ -240,7 +240,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSuccessToast }) =>
               className="secondary-btn"
               onClick={() => setShowOnboarding(true)}
             >
-              <Sparkles size={15} color="#1f9d67" /> Retake AI Onboarding Setup
+              <Sparkles size={15} color="#2563eb" /> Retake AI Onboarding Setup
             </button>
 
             <button

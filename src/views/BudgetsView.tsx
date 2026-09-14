@@ -129,7 +129,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
             <span
               style={{
                 width: `${Math.min(100, overallPct)}%`,
-                background: overallPct > 100 ? '#ef4444' : overallPct > 80 ? '#d97706' : '#1f9d67',
+                background: overallPct > 100 ? '#ef4444' : overallPct > 80 ? '#d97706' : '#2563eb',
               }}
             />
           </div>
@@ -198,7 +198,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                 <span
                   style={{
                     width: `${Math.min(100, pct)}%`,
-                    background: isOver ? '#ef4444' : isWarning ? '#d97706' : '#1f9d67',
+                    background: isOver ? '#ef4444' : isWarning ? '#d97706' : '#2563eb',
                   }}
                 />
               </div>

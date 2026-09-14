@@ -52,7 +52,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   // Calculate category percentages for the donut chart
   const categoriesList: { category: Category; label: string; color: string }[] = [
-    { category: 'Food', label: 'Food & Dining', color: '#1f9d67' },
+    { category: 'Food', label: 'Food & Dining', color: '#2563eb' },
     { category: 'Education', label: 'Education & Books', color: '#8669c7' },
     { category: 'Travel', label: 'Travel & Commute', color: '#5385d5' },
     { category: 'Shopping', label: 'Shopping & Gear', color: '#c7764e' },
@@ -195,7 +195,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   cy="50"
                   r={gaugeRadius}
                   fill="transparent"
-                  stroke="#1f9d67"
+                  stroke="#2563eb"
                   strokeWidth="9"
                   strokeLinecap="round"
                   strokeDasharray={`${gaugeCircumference} ${gaugeCircumference}`}
@@ -406,7 +406,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span
               style={{
                 width: `${totalBudgetProgress}%`,
-                background: totalBudgetProgress > 90 ? '#ef4444' : '#1f9d67',
+                background: totalBudgetProgress > 90 ? '#ef4444' : '#2563eb',
               }}
             />
           </div>
@@ -451,7 +451,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                           ? '#ef4444'
                           : pct >= 80
                             ? '#d97706'
-                            : '#1f9d67',
+                            : '#2563eb',
                     }}
                   >
                     {pct}%

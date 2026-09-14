@@ -98,7 +98,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onSuccessToast }) => {
 
           <div className="rep-metric">
             <span>Closing Balance</span>
-            <strong style={{ color: '#1f9d67' }}>
+            <strong style={{ color: '#2563eb' }}>
               {formatMoney(currentBalance)}
             </strong>
           </div>

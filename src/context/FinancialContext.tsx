@@ -605,7 +605,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return updated
       } else {
         const categoryColors: Record<Category, string> = {
-          Food: '#1f9d67',
+          Food: '#2563eb',
           Travel: '#5385d5',
           Education: '#8669c7',
           Shopping: '#c7764e',
@@ -632,7 +632,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setBudgets((prev) => {
       const updated = [...prev]
       const categoryColors: Record<Category, string> = {
-        Food: '#1f9d67',
+        Food: '#2563eb',
         Travel: '#5385d5',
         Education: '#8669c7',
         Shopping: '#c7764e',
@@ -796,7 +796,7 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // 2. Set Custom Category Budgets based on student answers
     const customBudgets: Budget[] = [
-      { id: 'b-1', category: 'Food', limit: answers.foodBudget, period: 'monthly', color: '#1f9d67' },
+      { id: 'b-1', category: 'Food', limit: answers.foodBudget, period: 'monthly', color: '#2563eb' },
       { id: 'b-2', category: 'Travel', limit: answers.travelBudget, period: 'monthly', color: '#5385d5' },
       { id: 'b-3', category: 'Education', limit: answers.booksBudget, period: 'monthly', color: '#8669c7' },
       { id: 'b-4', category: 'Bills', limit: answers.rentOrMess, period: 'monthly', color: '#0369a1' },

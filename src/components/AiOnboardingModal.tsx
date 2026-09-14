@@ -159,15 +159,15 @@ export const AiOnboardingModal: React.FC<AiOnboardingModalProps> = ({
 
                 <div className="onboarding-perks-list">
                   <div className="perk-item">
-                    <CheckCircle2 size={18} color="#1f9d67" />
+                    <CheckCircle2 size={18} color="#2563eb" />
                     <span>Dynamic Safe-to-Spend limit computed for your exact allowance</span>
                   </div>
                   <div className="perk-item">
-                    <CheckCircle2 size={18} color="#1f9d67" />
+                    <CheckCircle2 size={18} color="#2563eb" />
                     <span>Automated category budgets for food, transit, and books</span>
                   </div>
                   <div className="perk-item">
-                    <CheckCircle2 size={18} color="#1f9d67" />
+                    <CheckCircle2 size={18} color="#2563eb" />
                     <span>Effortless tracking: simply log daily spends or scan receipts</span>
                   </div>
                 </div>
@@ -447,7 +447,7 @@ export const AiOnboardingModal: React.FC<AiOnboardingModalProps> = ({
                 </div>
 
                 <div className="onboarding-ready-box">
-                  <Sparkles size={18} color="#1f9d67" />
+                  <Sparkles size={18} color="#2563eb" />
                   <span>
                     Ready! Finwise will now configure your custom budgets, set your Safe-to-Spend limit, and launch your personalized homepage.
                   </span>

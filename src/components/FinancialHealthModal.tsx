@@ -105,7 +105,7 @@ export const FinancialHealthModal: React.FC<FinancialHealthModalProps> = ({
 
         <div className="health-feedback-section" style={{ marginTop: '20px' }}>
           <div className="feedback-column">
-            <h4 style={{ color: '#1f9d67', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <h4 style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <CheckCircle2 size={16} /> Key Strengths
             </h4>
             <ul>

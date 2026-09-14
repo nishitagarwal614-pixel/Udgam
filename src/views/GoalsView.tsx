@@ -284,7 +284,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
                   <span
                     style={{
                       width: `${pct}%`,
-                      background: '#1f9d67',
+                      background: '#2563eb',
                     }}
                   />
                 </div>
@@ -297,7 +297,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ onSuccessToast }) => {
 
                   <div className="goal-stat-item">
                     <span>Required / Month</span>
-                    <strong style={{ color: '#1f9d67' }}>
+                    <strong style={{ color: '#2563eb' }}>
                       {formatMoney(monthlyReq)}
                     </strong>
                   </div>
