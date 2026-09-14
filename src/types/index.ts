@@ -95,6 +95,9 @@ export interface OnboardingAnswers {
   name: string
   college: string
   monthlyAllowance: number
+  startingBalance?: number
+  courseYear?: string
+  email?: string
   livingSituation: 'hostel' | 'flat' | 'home'
   foodBudget: number
   travelBudget: number
@@ -103,6 +106,8 @@ export interface OnboardingAnswers {
   subscriptionsBudget: number
   goalTitle: string
   goalTarget: number
+  aiPersonality?: 'Balanced' | 'Strict' | 'Encouraging'
+  avatarInitials?: string
 }
 
 export interface AffordabilityResult {

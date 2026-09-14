@@ -6,6 +6,8 @@ import {
   Download,
   RotateCcw,
   Save,
+  LogOut,
+  Sparkles,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 
@@ -21,6 +23,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSuccessToast }) =>
     transactions,
     budgets,
     goals,
+    logout,
+    setShowOnboarding,
   } = useFinancial()
 
   const [name, setName] = useState(profile.name)
@@ -213,6 +217,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSuccessToast }) =>
               onChange={(e) => setNotifications(e.target.checked)}
               aria-label="Toggle budget alerts"
             />
+          </div>
+        </div>
+
+        {/* Campus Profile Session & Access */}
+        <div className="card settings-card">
+          <div className="card-head">
+            <div>
+              <p className="eyebrow">CAMPUS ACCESS & PROFILE</p>
+              <h2>Session & Profile</h2>
+            </div>
+            <LogOut size={18} />
+          </div>
+
+          <p className="muted" style={{ marginBottom: '16px' }}>
+            Switch student profiles or re-run the campus onboarding to calibrate your financial baseline.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() => setShowOnboarding(true)}
+            >
+              <Sparkles size={15} color="#1f9d67" /> Retake AI Onboarding Setup
+            </button>
+
+            <button
+              type="button"
+              className="danger-outline-btn"
+              onClick={() => {
+                logout()
+                onSuccessToast('Logged out of student session.')
+              }}
+            >
+              <LogOut size={15} /> Log Out / Switch Account
+            </button>
           </div>
         </div>
 

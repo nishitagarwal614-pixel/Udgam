@@ -31,6 +31,7 @@ import { AlertsView } from './views/AlertsView'
 import { ReportsView } from './views/ReportsView'
 import { SettingsView } from './views/SettingsView'
 import { HelpSupportView } from './views/HelpSupportView'
+import { LoginView } from './views/LoginView'
 
 import type { Transaction, TransactionType } from './types'
 
@@ -42,6 +43,7 @@ function AppContent() {
     profile,
     showOnboarding,
     setShowOnboarding,
+    isLoggedIn,
   } = useFinancial()
 
   // Modal states
@@ -110,6 +112,15 @@ function AppContent() {
   const dismissToast = (id: string) => {
     setToasts((prev) =>
       prev.filter((t) => t.id !== id)
+    )
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className={`app ${profile.theme === 'dark' ? 'dark' : ''}`}>
+        <LoginView onSuccessToast={addToast} />
+        <Toast toasts={toasts} onDismiss={dismissToast} />
+      </div>
     )
   }
 

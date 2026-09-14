@@ -11,6 +11,8 @@ import {
   Check,
   ChevronLeft,
   Sparkles,
+  LogOut,
+  Settings,
 } from 'lucide-react'
 import { useFinancial } from '../context/FinancialContext'
 
@@ -35,9 +37,11 @@ export const Topbar: React.FC<TopbarProps> = ({
     alerts,
     markAlertRead,
     setShowOnboarding,
+    logout,
   } = useFinancial()
 
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   const unreadAlerts = alerts.filter((a) => !a.read)
 
@@ -187,16 +191,70 @@ export const Topbar: React.FC<TopbarProps> = ({
           )}
         </div>
 
-        {/* Profile Pill */}
-        <button
-          type="button"
-          className="profile-btn"
-          onClick={() => setActiveView('Settings')}
-          title="Open profile settings"
-        >
-          <span className="avatar small">{profile.avatarInitials}</span>
-          <ChevronRight size={14} className="desktop-only" />
-        </button>
+        {/* Profile Pill & Dropdown */}
+        <div className="profile-wrapper">
+          <button
+            type="button"
+            className="profile-btn"
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            title="Student Account & Profile"
+          >
+            <span className="avatar small">{profile.avatarInitials}</span>
+            <ChevronRight size={14} className="desktop-only" />
+          </button>
+
+          {showProfileMenu && (
+            <div className="profile-dropdown-menu">
+              <div className="profile-menu-header">
+                <span className="avatar medium">{profile.avatarInitials}</span>
+                <div className="menu-user-info">
+                  <strong>{profile.name}</strong>
+                  <small>{profile.college}</small>
+                </div>
+              </div>
+
+              <div className="profile-menu-divider" />
+
+              <button
+                type="button"
+                className="profile-menu-item"
+                onClick={() => {
+                  setShowProfileMenu(false)
+                  setShowOnboarding(true)
+                }}
+              >
+                <Sparkles size={15} color="#1f9d67" />
+                <span>Retake AI Setup</span>
+              </button>
+
+              <button
+                type="button"
+                className="profile-menu-item"
+                onClick={() => {
+                  setShowProfileMenu(false)
+                  setActiveView('Settings')
+                }}
+              >
+                <Settings size={15} />
+                <span>Account Settings</span>
+              </button>
+
+              <div className="profile-menu-divider" />
+
+              <button
+                type="button"
+                className="profile-menu-item danger"
+                onClick={() => {
+                  setShowProfileMenu(false)
+                  logout()
+                }}
+              >
+                <LogOut size={15} />
+                <span>Log Out / Switch Student</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

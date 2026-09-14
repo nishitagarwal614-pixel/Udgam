@@ -18,6 +18,7 @@ import { processBudgetAdvisorQuery, callGeminiAdvisor } from '../utils/budgetAiA
 
 interface FinancialContextType {
   // State
+  isLoggedIn: boolean
   transactions: Transaction[]
   budgets: Budget[]
   goals: Goal[]
@@ -73,6 +74,9 @@ interface FinancialContextType {
 
   setShowOnboarding: (show: boolean) => void
   generatePersonalizedPlan: (answers: OnboardingAnswers) => void
+  login: () => void
+  logout: () => void
+  loadStudentPreset: (preset: OnboardingAnswers) => void
 
   evaluateAffordability: (item: string, amount: number, category?: Category) => AffordabilityResult
   askAiCoach: (query: string) => Promise<AiCoachResponse>
@@ -174,6 +178,31 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   })
 
   const [activeView, setActiveView] = useState<string>('Overview')
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
+    try {
+      const savedAuth = localStorage.getItem(`${STORAGE_KEY}_auth`)
+      if (savedAuth !== null) {
+        return savedAuth === 'true'
+      }
+      const savedProfile = localStorage.getItem(`${STORAGE_KEY}_profile`)
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile)
+        return parsed.hasCompletedOnboarding === true
+      }
+      return false
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`${STORAGE_KEY}_auth`, String(isLoggedIn))
+    } catch (e) {
+      console.error('Failed to save auth state', e)
+    }
+  }, [isLoggedIn])
 
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     try {
@@ -753,7 +782,9 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       college: studentCollege,
       monthlyAllowance: answers.monthlyAllowance,
       hasCompletedOnboarding: true,
+      aiPersonality: answers.aiPersonality || profile.aiPersonality || 'Balanced',
       avatarInitials:
+        answers.avatarInitials ||
         studentName
           .split(' ')
           .map((n) => n[0])
@@ -797,16 +828,33 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       : []
     setGoals(customGoals)
 
-    // 4. Do not seed fictional transactions.
-    // Transactions are added only when the user records them.
-    setTransactions([])
+    // 4. Initial opening balance if provided
+    const startingBal = Number(answers.startingBalance) || 0
+    if (startingBal > 0) {
+      setTransactions([
+        {
+          id: `tx-init-${Date.now()}`,
+          merchant: 'Opening Liquid Balance',
+          category: 'Income',
+          date: new Date().toISOString().split('T')[0],
+          displayDate: 'Opening Balance',
+          timestamp: Date.now(),
+          amount: startingBal,
+          type: 'income',
+          paymentMethod: 'NetBanking',
+          notes: 'Initial account balance recorded during setup',
+        },
+      ])
+    } else {
+      setTransactions([])
+    }
 
     // 5. Add welcome alert
     const welcomeAlert: Alert = {
       id: `alt-${Date.now()}`,
       type: 'success',
-      title: `Welcome, ${studentName}! Homepage Personalized`,
-      message: `Your budgets and Safe-to-Spend limits are generated for your ${formatMoney(answers.monthlyAllowance)} allowance. Start logging expenses!`,
+      title: `Welcome, ${studentName}! Dashboard Ready`,
+      message: `Your budgets and Safe-to-Spend limits are calibrated for your ${formatMoney(answers.monthlyAllowance)} allowance${startingBal > 0 ? ` and ${formatMoney(startingBal)} starting funds` : ''}.`,
       date: 'Just now',
       read: false,
       actionView: 'Overview',
@@ -814,6 +862,20 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setAlerts([welcomeAlert])
 
     setShowOnboarding(false)
+    setIsLoggedIn(true)
+    setActiveView('Overview')
+  }
+
+  const login = () => {
+    setIsLoggedIn(true)
+  }
+
+  const logout = () => {
+    setIsLoggedIn(false)
+  }
+
+  const loadStudentPreset = (preset: OnboardingAnswers) => {
+    generatePersonalizedPlan(preset)
   }
 
   // Affordability Decision Engine
@@ -976,6 +1038,10 @@ export const FinancialProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         showOnboarding,
         setShowOnboarding,
         generatePersonalizedPlan,
+        isLoggedIn,
+        login,
+        logout,
+        loadStudentPreset,
         evaluateAffordability,
         askAiCoach,
         formatMoney,
